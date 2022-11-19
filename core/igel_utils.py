@@ -48,12 +48,12 @@ class AddIGELNodeFeatures:
         return data
 
     def global_graph(self, data):
+        num_nodes = [datum.x.shape[0] for datum in data]
         edges = [datum.clone().edge_index.numpy() for datum in data]
         shift_index = 0
         for i, graph_edges in enumerate(edges):
-            graph_max = graph_edges.max()
             edges[i] += shift_index
-            shift_index += graph_max + 1
+            shift_index += num_nodes[i]
         global_edges = np.concatenate(edges, axis=-1)
         edge_tuples = list(zip(global_edges[0], global_edges[1]))
 
