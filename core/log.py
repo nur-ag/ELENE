@@ -17,6 +17,7 @@ def config_logger(cfg, OUT_PATH="results/", time=False):
                     f'H[{cfg.model.hidden_size}] HopsEmb[{cfg.model.hops_dim}] Pool[{cfg.model.pool}] VN[{cfg.model.virtual_node}] WithOri[{cfg.model.use_normal_gnn}] '\
                     f'Hops[{cfg.subgraph.hops}] WalkL[{cfg.subgraph.walk_length}] p[{cfg.subgraph.walk_p}] q[{cfg.subgraph.walk_q}] '\
                     f'Smp[{cfg.sampling.mode}] MR[{cfg.sampling.redundancy}] '\
+                    f'IgAlpha[{cfg.igel.distance}] IgRel[{cfg.igel.use_relative_degrees}] '\
                     f'Reg[{cfg.train.dropout}-{cfg.train.wd}] Seed[{cfg.seed}] GPU[{cfg.device}]'
     
     # setup tensorboard writer

@@ -186,7 +186,8 @@ class GNNAsKernel(nn.Module):
                         embs_combine_mode='add',
                         mlp_layers=1,
                         subsampling=False, 
-                        online=True):
+                        online=True,
+                        igel_length=None):
         super().__init__()
         # special case: PPGN
         nlayer_ppgn = nlayer_inner
@@ -196,6 +197,11 @@ class GNNAsKernel(nn.Module):
             nlayer_outer = 1
 
         # nfeat_in is None: discrete input features
+        if igel_length is not None:
+            if nfeat_node is not None:
+                nfeat_node = nfeat_node + igel_length
+            else:
+                self.igel_linear = nn.Linear(igel_length + nhid, nhid)
         self.input_encoder = DiscreteEncoder(nhid) if nfeat_node is None else MLP(nfeat_node, nhid, 1)
         # layers
         edge_emd_dim = nhid if nlayer_inner == 0 else nhid + hop_dim 
@@ -239,6 +245,7 @@ class GNNAsKernel(nn.Module):
         self.vn = vn
         self.res = res
         self.pooling = pooling
+        self.igel_length = igel_length
 
 
     def reset_parameters(self):
@@ -254,7 +261,12 @@ class GNNAsKernel(nn.Module):
 
     def forward(self, data):
         x = data.x if len(data.x.shape) <= 2 else data.x.squeeze(-1)
-        x = self.input_encoder(x)
+        if self.igel_length is not None and isinstance(self.input_encoder, DiscreteEncoder):
+            x_embeddings = self.input_encoder(x[:, :-self.igel_length].int())
+            x_igel = x[:, -self.igel_length:]
+            x = self.igel_linear(torch.cat([x_embeddings, x_igel], dim=-1))
+        else:
+            x = self.input_encoder(x)
         ori_edge_attr = data.edge_attr 
         if ori_edge_attr is None:
             ori_edge_attr = data.edge_index.new_zeros(data.edge_index.size(-1))

@@ -107,6 +107,17 @@ def set_cfg(cfg):
     # Reduce evaluation batch size by a factor to avoid use more meory, as test is always in full-mode
     cfg.sampling.batch_factor = 1
 
+    # ------------------------------------------------------------------------ #
+    # IGEL options
+    # ------------------------------------------------------------------------ #
+    cfg.igel = CN()
+    # Distance from the ego-network root, i.e. alpha
+    cfg.igel.distance = 1
+    # Whether to use relative degrees or just 'absolute' degrees in the encoding
+    cfg.igel.use_relative_degrees = False
+    # Length of the IGEL vector
+    cfg.igel.embedded_vector_length = None
+
     return cfg
     
 import os 

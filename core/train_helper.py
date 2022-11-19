@@ -4,6 +4,10 @@ import time
 from core.log import config_logger
 from torch_geometric.loader import DataLoader
 from torch.optim.lr_scheduler import StepLR
+from core.igel_utils import AddIGELNodeFeatures
+
+def get_device(cfg):
+    return torch.device(get_device(cfg.device) if torch.cuda.is_available() else 'cpu')
 
 def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     if cfg.seed is not None:
@@ -19,6 +23,14 @@ def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     # 1. create dataset
     train_dataset, val_dataset, test_dataset = create_dataset(cfg)
 
+    # 1.b. add IGEL encodings, keeping the embedded vector length in the config
+    igel = AddIGELNodeFeatures(cfg.seed, cfg.igel.distance, -1, cfg.igel.use_relative_degrees)
+    train_dataset = igel(train_dataset)
+    val_dataset = igel(val_dataset)
+    test_dataset = igel(test_dataset)
+    if igel.model is not None and cfg.igel.embedded_vector_length is None:
+        cfg.igel.embedded_vector_length = igel.model.output_size
+
     # 2. create loader
     train_loader = DataLoader(train_dataset, cfg.train.batch_size, shuffle=True, num_workers=cfg.num_workers)
     val_loader = DataLoader(val_dataset,  cfg.train.batch_size//cfg.sampling.batch_factor, shuffle=False, num_workers=cfg.num_workers)
@@ -28,7 +40,7 @@ def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     vali_perfs = []
     for run in range(1, cfg.train.runs+1):
         # 3. create model and opt
-        model = create_model(cfg).to(cfg.device)
+        model = create_model(cfg).to(get_device(cfg.device))
         # print(f"Number of parameters: {count_parameters(model)}")
         # exit(0)
         model.reset_parameters()
@@ -41,17 +53,17 @@ def run(cfg, create_dataset, create_model, train, test, evaluator=None):
         for epoch in range(1, cfg.train.epochs+1):
             start = time.time()
             model.train()
-            train_loss = train(train_loader, model, optimizer, device=cfg.device)
+            train_loss = train(train_loader, model, optimizer, device=get_device(cfg.device))
             scheduler.step()
-            memory_allocated = torch.cuda.max_memory_allocated(cfg.device) // (1024 ** 2)
-            memory_reserved = torch.cuda.max_memory_reserved(cfg.device) // (1024 ** 2)
-            # print(f"---{test(train_loader, model, evaluator=evaluator, device=cfg.device) }")
+            memory_allocated = torch.cuda.max_memory_allocated(get_device(cfg.device)) // (1024 ** 2)
+            memory_reserved = torch.cuda.max_memory_reserved(get_device(cfg.device)) // (1024 ** 2)
+            # print(f"---{test(train_loader, model, evaluator=evaluator, device=get_device(cfg.device)) }")
 
             model.eval()
-            val_perf = test(val_loader, model, evaluator=evaluator, device=cfg.device)
+            val_perf = test(val_loader, model, evaluator=evaluator, device=get_device(cfg.device))
             if val_perf > best_val_perf:
                 best_val_perf = val_perf
-                test_perf = test(test_loader, model, evaluator=evaluator, device=cfg.device) 
+                test_perf = test(test_loader, model, evaluator=evaluator, device=get_device(cfg.device)) 
             time_per_epoch = time.time() - start 
 
             # logger here
@@ -110,7 +122,7 @@ def run_k_fold(cfg, create_dataset, create_model, train, test, evaluator=None, k
         train_loader = DataLoader(train_dataset, cfg.train.batch_size, shuffle=True, num_workers=cfg.num_workers)
         test_loader = DataLoader(test_dataset,  cfg.train.batch_size//cfg.sampling.batch_factor, shuffle=False, num_workers=cfg.num_workers)
 
-        model = create_model(cfg).to(cfg.device)
+        model = create_model(cfg).to(get_device(cfg.device))
         model.reset_parameters()
 
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.lr, weight_decay=cfg.train.wd)
@@ -122,13 +134,13 @@ def run_k_fold(cfg, create_dataset, create_model, train, test, evaluator=None, k
         for epoch in range(1, cfg.train.epochs+1):
             start = time.time()
             model.train()
-            train_loss = train(train_loader, model, optimizer, device=cfg.device)
+            train_loss = train(train_loader, model, optimizer, device=get_device(cfg.device))
             scheduler.step()
-            memory_allocated = torch.cuda.max_memory_allocated(cfg.device) // (1024 ** 2)
-            memory_reserved = torch.cuda.max_memory_reserved(cfg.device) // (1024 ** 2)
+            memory_allocated = torch.cuda.max_memory_allocated(get_device(cfg.device)) // (1024 ** 2)
+            memory_reserved = torch.cuda.max_memory_reserved(get_device(cfg.device)) // (1024 ** 2)
 
             model.eval()
-            test_perf = test(test_loader, model, evaluator=evaluator, device=cfg.device) 
+            test_perf = test(test_loader, model, evaluator=evaluator, device=get_device(cfg.device)) 
             test_curve.append(test_perf.item())
             best_test_perf = test_perf if test_perf > best_test_perf else best_test_perf
   

@@ -38,8 +38,8 @@ def create_dataset(cfg):
     # torch.set_num_threads(cfg.num_workers)
     if (cfg.sampling.mode is None and cfg.subgraph.walk_length == 0) or (cfg.subgraph.online is False):
         train_dataset = [x for x in train_dataset]
-    val_dataset = [x for x in val_dataset] 
-    test_dataset = [x for x in test_dataset] 
+    val_dataset = [x for x in val_dataset]
+    test_dataset = [x for x in test_dataset]
 
     # print('------------Train--------------')
     # calculate_stats(train_dataset)
@@ -67,7 +67,8 @@ def create_model(cfg):
                         mlp_layers=cfg.model.mlp_layers,
                         dropout=cfg.train.dropout, 
                         subsampling=True if cfg.sampling.mode is not None else False,
-                        online=cfg.subgraph.online) 
+                        online=cfg.subgraph.online,
+                        igel_length=cfg.igel.embedded_vector_length) 
     return model
 
 def train(train_loader, model, optimizer, device):

@@ -15,7 +15,8 @@ class ToLong(object):
         return data
 
 def create_dataset(cfg):
-    torch.set_num_threads(cfg.num_workers)
+    if cfg.num_workers:
+        torch.set_num_threads(cfg.num_workers)
     dataset = TUDataset('data', cfg.dataset)
 
     transform = SubgraphsTransform(cfg.subgraph.hops, 

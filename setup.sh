@@ -25,3 +25,7 @@ pip install matplotlib
 
 # install jupyter and ipython 
 conda install -c conda-forge nb_conda -y
+
+# install igraph for IGEL and missing networkx
+conda install -c conda-forge python-igraph
+pip install networkx dill
