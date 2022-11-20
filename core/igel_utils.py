@@ -82,6 +82,9 @@ class AddIGELNodeFeatures:
                                          embedder_length,
                                          self.use_relative_degrees,
                                          train_opts=TRAINING_OPTIONS)
+        # We force the model in the CPU
+        trained_model.device = torch.device('cpu')
+        trained_model.to(trained_model.device)
 
         # If we are using encodings, override the parameter matrix
         if self.use_encoding:
@@ -90,7 +93,7 @@ class AddIGELNodeFeatures:
 
             # Using encodings: simply replace the learned embedding matrix with an identity matrix
             # This will return the structural features as-is.
-            input_identity = torch.eye(embedder_length)
+            input_identity = torch.eye(embedder_length).to(trained_model.device)
             trained_model.matrix = nn.Parameter(input_identity, requires_grad=False).to(trained_model.device)
             trained_model.output_size = embedder_length
         print(f'Prepared IGEL model (encoding-only: {self.use_encoding}, relative: {self.use_relative_degrees}) with {embedder_length} features.')

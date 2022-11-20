@@ -6,8 +6,8 @@ from torch_geometric.loader import DataLoader
 from torch.optim.lr_scheduler import StepLR
 from core.igel_utils import AddIGELNodeFeatures
 
-def get_device(cfg):
-    return torch.device(get_device(cfg.device) if torch.cuda.is_available() else 'cpu')
+def get_device(device):
+    return torch.device(device if torch.cuda.is_available() else 'cpu')
 
 def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     if cfg.seed is not None:
