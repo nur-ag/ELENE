@@ -68,7 +68,8 @@ def create_model(cfg):
                         dropout=cfg.train.dropout, 
                         subsampling=True if cfg.sampling.mode is not None else False,
                         online=cfg.subgraph.online,
-                        igel_length=cfg.igel.embedded_vector_length)
+                        igel_length=cfg.igel.embedded_vector_length,
+                        igel_edge_encodings=cfg.igel.use_edge_encodings)
     model.task = cfg.task
     return model
 

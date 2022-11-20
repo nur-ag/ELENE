@@ -21,12 +21,14 @@ class AddIGELNodeFeatures:
             seed=0, 
             distance=1, 
             vector_length=-1,
-            use_relative_degrees=False):
+            use_relative_degrees=False,
+            use_edge_encodings=False):
         self.distance = distance
         self.seed = seed
         self.vector_length = vector_length
         self.use_encoding = vector_length < 0
         self.use_relative_degrees = use_relative_degrees
+        self.use_edge_encodings = use_edge_encodings
         self.model = None
 
     def __call__(self, data):
@@ -44,6 +46,12 @@ class AddIGELNodeFeatures:
             end_datum_shift = datum_shift + num_nodes
             datum_igel_emb = igel_emb[datum_shift:end_datum_shift].to(datum.x.device)
             datum.x = torch.cat([datum.x, datum_igel_emb], dim=-1)
+            datum_edge_attr = getattr(datum, "edge_attr", None)
+            if datum_edge_attr is not None and self.use_edge_encodings:
+                if len(datum_edge_attr.shape) == 1:
+                    datum_edge_attr = datum_edge_attr.reshape(-1, 1)
+                datum_igel_edge_attr = datum_igel_emb[datum.edge_index[0, :]] * datum_igel_emb[datum.edge_index[1, :]]
+                datum.edge_attr = torch.cat([datum_edge_attr, datum_igel_edge_attr], dim=-1)
             datum_shift = end_datum_shift
         return data
 

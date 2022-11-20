@@ -117,7 +117,8 @@ def set_cfg(cfg):
     cfg.igel.use_relative_degrees = False
     # Length of the IGEL vector
     cfg.igel.embedded_vector_length = None
-
+    # Whether to add IGEL edge functions as the product of IGEL encodings across nodes in the edge
+    cfg.igel.use_edge_encodings = False
     return cfg
     
 import os 

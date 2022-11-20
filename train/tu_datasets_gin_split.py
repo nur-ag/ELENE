@@ -64,7 +64,9 @@ def create_model(cfg):
                         mlp_layers=cfg.model.mlp_layers,
                         dropout=cfg.train.dropout, 
                         subsampling=True if cfg.sampling.mode is not None else False,
-                        online=cfg.subgraph.online) 
+                        online=cfg.subgraph.online,
+                        igel_length=cfg.igel.embedded_vector_length,
+                        igel_edge_encodings=cfg.igel.use_edge_encodings)
     return model
 
 def train(train_loader, model, optimizer, device):

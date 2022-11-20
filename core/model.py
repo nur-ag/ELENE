@@ -187,8 +187,10 @@ class GNNAsKernel(nn.Module):
                         mlp_layers=1,
                         subsampling=False, 
                         online=True,
-                        igel_length=None):
+                        igel_length=None,
+                        igel_edge_encodings=False):
         super().__init__()
+        self.igel_edge_encodings = igel_edge_encodings
         # special case: PPGN
         nlayer_ppgn = nlayer_inner
         if gnn_types[0] == 'PPGN' and nlayer_inner == 0:
@@ -197,14 +199,22 @@ class GNNAsKernel(nn.Module):
             nlayer_outer = 1
 
         # nfeat_in is None: discrete input features
+        edge_emd_dim = nhid if nlayer_inner == 0 else nhid + hop_dim 
         if igel_length is not None:
             if nfeat_node is not None:
                 nfeat_node = nfeat_node + igel_length
             else:
                 self.igel_linear = nn.Linear(igel_length + nhid, nhid)
+
+            # Get a linear projection per outer layer to encode edges differently
+            if self.igel_edge_encodings:
+                if nfeat_edge is not None:
+                    nfeat_edge = nfeat_node + igel_length
+                else:
+                    self.igel_edge_linears = nn.ModuleList(
+                        [nn.Linear(igel_length + edge_emd_dim, edge_emd_dim) for _ in range(nlayer_outer)]
+                    )
         self.input_encoder = DiscreteEncoder(nhid) if nfeat_node is None else MLP(nfeat_node, nhid, 1)
-        # layers
-        edge_emd_dim = nhid if nlayer_inner == 0 else nhid + hop_dim 
         self.edge_encoders = nn.ModuleList([DiscreteEncoder(edge_emd_dim) if nfeat_edge is None else MLP(nfeat_edge, edge_emd_dim, 1)
                                             for _ in range(nlayer_outer)])
 
@@ -276,7 +286,15 @@ class GNNAsKernel(nn.Module):
         for i, (edge_encoder, subgraph_layer, normal_gnn, norm, vn_aggregator) in enumerate(zip(self.edge_encoders, 
                                         self.subgraph_layers, self.traditional_gnns, self.norms, self.vn_aggregators)):
             # if ori_edge_attr is not None: # Encode edge attr for each layer
-            data.edge_attr = edge_encoder(ori_edge_attr) 
+            if self.igel_length is not None and self.igel_edge_encodings:
+                if isinstance(self.input_encoder, DiscreteEncoder):
+                    edge_attr_embeddings = edge_encoder(ori_edge_attr[:, :-self.igel_length].int())
+                    edge_attr_igel = ori_edge_attr[:, -self.igel_length:]
+                    data.edge_attr = self.igel_edge_linears[i](torch.cat([edge_attr_embeddings, edge_attr_igel], dim=-1))
+                else:
+                    data.edge_attr = edge_encoder(ori_edge_attr)
+            else:
+                data.edge_attr = edge_encoder(ori_edge_attr)
             data.x = x
             if self.num_inner_layers == 0: 
                 # standard message passing nn 
