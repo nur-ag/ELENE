@@ -79,10 +79,45 @@ class SubgraphsTransform(object):
 
         data.subgraphs_batch = subgraphs_nodes[0]
         data.subgraphs_nodes_mapper = subgraphs_nodes[1]
+        data.subgraphs_edge_batch = subgraphs_edges[0]
         data.subgraphs_edges_mapper = subgraphs_edges[1]
         data.combined_subgraphs = combined_subgraphs
         data.hop_indicator = hop_indicator
         data.__num_nodes__ = data.num_nodes # set number of nodes of the current graph 
+
+        # Find the relative degree counts by counting occurrences of edges from every hop
+        subgraph_degrees = torch.zeros((data.num_nodes, data.num_nodes, 3))
+        all_subgraph_edges = data.edge_index[:, subgraphs_edges[1]]
+        ego_root_indexes = subgraphs_edges[0]
+        edge_src_indexes = all_subgraph_edges[0]
+        edge_dst_indexes = all_subgraph_edges[1]
+
+        # Compute the hop deltas
+        src_hops = hop_indicator_dense[ego_root_indexes, edge_src_indexes]
+        dst_hops = hop_indicator_dense[ego_root_indexes, edge_dst_indexes]
+        hop_deltas = dst_hops - src_hops + 1
+        for i in range(3):
+            # Select the indices of the root and edge nodes at the i-th relative hop
+            hop_deltas_edge_indexes = (hop_deltas == i).nonzero().reshape(-1)
+            root_idx = ego_root_indexes[hop_deltas_edge_indexes]
+            src_idx = root_idx + data.num_nodes * edge_src_indexes[hop_deltas_edge_indexes]
+            dst_idx = root_idx + data.num_nodes * edge_dst_indexes[hop_deltas_edge_indexes]
+
+            # Count the frequency of each <root, edge index> pair on both edge directions
+            src_edge_indexes = src_idx.bincount(minlength=data.num_nodes**2).reshape(data.num_nodes, data.num_nodes)
+            dst_edge_indexes = dst_idx.bincount(minlength=data.num_nodes**2).reshape(data.num_nodes, data.num_nodes)
+            subgraph_degrees[:, :, i] = src_edge_indexes
+            subgraph_degrees[:, :, 2 - i] = dst_edge_indexes
+
+        # Add the hops and degrees for each node in each subgraph (IGEL-style encoding)
+        data.subgraph_node_hops = hop_indicator_dense[subgraphs_nodes[0], subgraphs_nodes[1]].int()
+        data.subgraph_node_degrees = subgraph_degrees[subgraphs_nodes[0], subgraphs_nodes[1]].int()
+
+        # Add hops and degrees alongside the subgraph edges (EIGEL extension)
+        src_degrees = subgraph_degrees[ego_root_indexes, edge_src_indexes]
+        dst_degrees = subgraph_degrees[ego_root_indexes, edge_dst_indexes]
+        data.subgraph_edge_hops = torch.cat([src_hops.reshape(-1, 1), dst_hops.reshape(-1, 1)], dim=-1).int()
+        data.subgraph_edge_degrees = torch.vstack([src_degrees, dst_degrees]).reshape(-1, 2, 3).int()
         return data
 
 """

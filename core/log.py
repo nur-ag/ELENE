@@ -3,6 +3,8 @@ from torch.utils.tensorboard import SummaryWriter # tensorboard
 import logging, os, sys, shutil
 import datetime
 
+INCLUDE_EIGEL = True
+
 def config_logger(cfg, OUT_PATH="results/", time=False):
     # time option is used for debugging different model architecture. 
     data_name = cfg.dataset 
@@ -14,12 +16,18 @@ def config_logger(cfg, OUT_PATH="results/", time=False):
     os.makedirs(os.path.join(OUT_PATH, cfg.version), exist_ok=True)
     config_string = f'T[{cfg.task}] GNN[{cfg.model.gnn_type}] L[{cfg.model.num_layers}] Mini[{cfg.model.mini_layers}] '\
                     f'Emb[{cfg.model.embs}-{cfg.model.embs_combine_mode}-{cfg.model.mlp_layers}] '\
-                    f'H[{cfg.model.hidden_size}] HopsEmb[{cfg.model.hops_dim}] Pool[{cfg.model.pool}] VN[{cfg.model.virtual_node}] WithOri[{cfg.model.use_normal_gnn}] '\
-                    f'Hops[{cfg.subgraph.hops}] WalkL[{cfg.subgraph.walk_length}] p[{cfg.subgraph.walk_p}] q[{cfg.subgraph.walk_q}] '\
+                    f'H[{cfg.model.hidden_size}] HopE[{cfg.model.hops_dim}] Pl[{cfg.model.pool}] VN[{cfg.model.virtual_node}] WOr[{cfg.model.use_normal_gnn}] '\
+                    f'Hops[{cfg.subgraph.hops}] WkL[{cfg.subgraph.walk_length}] p[{cfg.subgraph.walk_p}] q[{cfg.subgraph.walk_q}] '\
                     f'Smp[{cfg.sampling.mode}] MR[{cfg.sampling.redundancy}] '\
-                    f'IgAlpha[{cfg.igel.distance}] IgRel[{cfg.igel.use_relative_degrees}] IgEd[{cfg.igel.use_edge_encodings}] '\
+                    f'IgA[{cfg.igel.distance}] IgR[{cfg.igel.use_relative_degrees}] IgE[{cfg.igel.use_edge_encodings}] '\
                     f'Reg[{cfg.train.dropout}-{cfg.train.wd}] Seed[{cfg.seed}] GPU[{cfg.device}]'
-    
+    if INCLUDE_EIGEL:
+        eigel_rel = "Y" if cfg.eigel.relative_degrees else "N"
+        eigel_model_type = cfg.eigel.model_type[0].upper()
+        use_gnn = "Y" if cfg.use_gnn else "N"
+        config_string = f'{config_string} '\
+                        f'EIGEL[{cfg.eigel.max_degree}-{cfg.eigel.max_distance}-{eigel_rel}{eigel_model_type}-{cfg.eigel.embedding_dim}-{cfg.eigel.reuse_embeddings}-{cfg.eigel.layer_indices}-{use_gnn}]'\
+
     # setup tensorboard writer
     writer_folder = os.path.join(OUT_PATH, cfg.version, data_name, config_string)
     if time:

@@ -15,6 +15,7 @@ IGEL_DISTANCES=${5:-0 1 2}
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
 declare -A PROBLEM_LAYERS
+PROBLEM_LAYERS["exp"]="4"
 PROBLEM_LAYERS["zinc"]="6"
 PROBLEM_LAYERS["pattern"]="6"
 PROBLEM_LAYERS["cifar10"]="4"

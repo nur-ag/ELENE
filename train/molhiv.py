@@ -69,7 +69,15 @@ def create_model(cfg):
                         subsampling=True if cfg.sampling.mode is not None else False,
                         online=cfg.subgraph.online,
                         igel_length=cfg.igel.embedded_vector_length,
-                        igel_edge_encodings=cfg.igel.use_edge_encodings)
+                        igel_edge_encodings=cfg.igel.use_edge_encodings,
+                        eigel_max_degree=cfg.eigel.max_degree,
+                        eigel_max_distance=cfg.eigel.max_distance,
+                        eigel_relative_degrees=cfg.eigel.relative_degrees,
+                        eigel_model_type=cfg.eigel.model_type,
+                        eigel_embedding_dim=cfg.eigel.embedding_dim,
+                        eigel_reuse_embeddings=cfg.eigel.reuse_embeddings,
+                        eigel_layer_indices=cfg.eigel.layer_indices,
+                        use_gnn=cfg.use_gnn)
     return model
 
 def train(train_loader, model, optimizer, device):

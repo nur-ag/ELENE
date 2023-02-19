@@ -35,6 +35,9 @@ class AddIGELNodeFeatures:
         if self.distance < 1:
             return data
 
+        if type(data) != list:
+            data = [datum for datum in data]
+
         G = self.global_graph(data)
         if self.model is None:
             self.model = self.train_igel_model(G)

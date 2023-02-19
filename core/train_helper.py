@@ -23,6 +23,22 @@ def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     # 1. create dataset
     train_dataset, val_dataset, test_dataset = create_dataset(cfg)
 
+    # Dump dataset metrics to fix parameters
+    import igraph as ig
+    import numpy as np
+    def g_from_edges(edges): 
+        G = ig.Graph()
+        num_nodes = edges.max()+1 if edges.size > 0 else 1
+        G.add_vertices(num_nodes)
+        if num_nodes > 1:
+            G.add_edges(zip(*edges))
+        return G
+    raise ValueError(
+        np.max([max(g_from_edges(data.edge_index.numpy()).degree()) for data in train_dataset if len(data.edge_index)]),
+        np.max([data.subgraph_node_degrees.float().max(dim=0).values.numpy() for data in train_dataset if len(data.edge_index)], axis=0),
+        np.mean([data.subgraph_node_degrees.float().mean(dim=0).numpy() for data in train_dataset if len(data.edge_index)], axis=0),
+    )
+
     # 1.b. add IGEL encodings, keeping the embedded vector length in the config
     igel = AddIGELNodeFeatures(cfg.seed, cfg.igel.distance, -1, cfg.igel.use_relative_degrees, cfg.igel.use_edge_encodings)
     train_dataset = igel(train_dataset)
@@ -100,6 +116,23 @@ def run_k_fold(cfg, create_dataset, create_model, train, test, evaluator=None, k
 
     writer, logger, config_string = config_logger(cfg)
     dataset, transform, transform_eval = create_dataset(cfg)
+
+    # Dump dataset metrics to fix parameters
+    import igraph as ig
+    import numpy as np
+    dataset = list([transform(d) for d in dataset])
+    def g_from_edges(edges): 
+        G = ig.Graph()
+        num_nodes = edges.max()+1 if edges.size > 0 else 1
+        G.add_vertices(num_nodes)
+        if num_nodes > 1:
+            G.add_edges(zip(*edges))
+        return G
+    raise ValueError(
+        np.max([max(g_from_edges(data.edge_index.numpy()).degree()) for data in dataset if len(data.edge_index)]),
+        np.max([data.subgraph_node_degrees.float().max(dim=0).values.numpy() for data in dataset if len(data.edge_index)], axis=0),
+        np.mean([data.subgraph_node_degrees.float().mean(dim=0).numpy() for data in dataset if len(data.edge_index)], axis=0),
+    )
 
     if hasattr(dataset, 'train_indices'):
         k_fold_indices = dataset.train_indices, dataset.test_indices

@@ -5,6 +5,7 @@ from torch_scatter import scatter
 import core.model_utils.pyg_gnn_wrapper as gnn_wrapper 
 from core.model_utils.elements import MLP, DiscreteEncoder, Identity, VNUpdate
 from core.model_utils.ppgn import PPGN
+from core.eigel import EIGELMessagePasser, EIGELEmbedder
 from torch_geometric.nn.inits import reset
 
 BN = True
@@ -42,6 +43,7 @@ class GNN(nn.Module):
 
         x = self.output_encoder(x)
         return x
+
 
 class SubgraphGNNKernel(nn.Module):
     # Use GNN to encode subgraphs
@@ -124,7 +126,6 @@ class SubgraphGNNKernel(nn.Module):
         # subgraph_x = combined_subgraphs_x
         # subgraph_x = subgraph_x * self.gate_mapper_subgraph(hop_emb)
         # x = scatter(subgraph_x, combined_subgraphs_batch, dim=0, reduce=self.pooling)
-        
         if self.subsampling and self.training:
             centroid_x_selected = combined_subgraphs_x[(data.subgraphs_nodes_mapper == data.selected_supernodes[combined_subgraphs_batch])]
             subgraph_x_selected = self.subgraph_transform(F.dropout(combined_subgraphs_x, self.dropout, training=self.training)) if len(self.embs) > 1 else combined_subgraphs_x
@@ -188,8 +189,17 @@ class GNNAsKernel(nn.Module):
                         subsampling=False, 
                         online=True,
                         igel_length=None,
-                        igel_edge_encodings=False):
+                        igel_edge_encodings=False,
+                        eigel_max_degree=50,
+                        eigel_max_distance=3,
+                        eigel_relative_degrees=True,
+                        eigel_model_type="disjoint",
+                        eigel_embedding_dim=128,
+                        eigel_reuse_embeddings=False,
+                        eigel_layer_indices=(0,),
+                        use_gnn=True):
         super().__init__()
+        self.use_gnn = use_gnn
         self.igel_edge_encodings = igel_edge_encodings
         # special case: PPGN
         nlayer_ppgn = nlayer_inner
@@ -257,6 +267,57 @@ class GNNAsKernel(nn.Module):
         self.pooling = pooling
         self.igel_length = igel_length
 
+        # EIGEL extensions
+        self.eigels = []
+        for i in range(nlayer_outer):
+            if not eigel_max_degree and not eigel_max_distance and i not in eigel_layer_indices:
+                self.eigels.append(None)
+                continue
+
+            if eigel_model_type in ("joint", "disjoint"):
+                # Figure out if we should reuse any embedding matrix or not
+                given_embedders = None
+                if i > 0 and eigel_reuse_embeddings not in (False, "no"):
+                    if joint_embeddings:
+                        given_embedders = (
+                            self.eigels[0].eigel_embedder.edge_degree_delta_embedders,
+                            self.eigels[0].eigel_embedder.node_degree_distance_embedders
+                        )
+                    else:
+                        if eigel_reuse_embeddings == "degree_only":
+                            given_embedders = (
+                                self.eigels[0].eigel_embedder.degree_embedders,
+                                nn.Embedding(3 * (eigel_max_distance + 1), 3 * (eigel_max_distance + 1)),
+                                nn.Embedding(eigel_max_distance + 1, eigel_max_distance + 1)
+                            )
+                        else:
+                            given_embedders = (
+                                self.eigels[0].eigel_embedder.degree_embedders,
+                                self.eigels[0].eigel_embedder.delta_embedder,
+                                self.eigels[0].eigel_embedder.distance_embedder
+                            )
+
+                # Define embedder and layer
+                joint_embeddings = eigel_model_type == "joint"
+                eigel_embedder = EIGELEmbedder(
+                    max_degree=eigel_max_degree,
+                    max_distance=eigel_max_distance,
+                    use_relative_degrees=eigel_relative_degrees,
+                    joint_embeddings=joint_embeddings,
+                    embedding_dim=eigel_embedding_dim,
+                    given_embedders=given_embedders,
+                )
+                eigel = EIGELMessagePasser(
+                    nhid, edge_emd_dim, mlp_layers=1, max_degree=eigel_max_degree, max_distance=eigel_max_distance,
+                    use_relative_degrees=eigel_relative_degrees, joint_embeddings=joint_embeddings,
+                    eigel_embedder=eigel_embedder
+                )
+            else:
+                raise ValueError("Unknown EIGEL model type.")
+            eigel.reset_parameters()
+            self.eigels.append(eigel)
+        if any([module is not None for module in self.eigels]):
+            self.eigels = nn.ModuleList(self.eigels)
 
     def reset_parameters(self):
         self.input_encoder.reset_parameters()
@@ -278,15 +339,17 @@ class GNNAsKernel(nn.Module):
         else:
             x = self.input_encoder(x)
         ori_edge_attr = data.edge_attr 
+        ori_edge_has_attr = ori_edge_attr is not None
         if ori_edge_attr is None:
             ori_edge_attr = data.edge_index.new_zeros(data.edge_index.size(-1))
+            data.edge_attr = ori_edge_attr
 
         previous_x = x # for residual connection
         virtual_node = None
-        for i, (edge_encoder, subgraph_layer, normal_gnn, norm, vn_aggregator) in enumerate(zip(self.edge_encoders, 
-                                        self.subgraph_layers, self.traditional_gnns, self.norms, self.vn_aggregators)):
+        for i, (edge_encoder, subgraph_layer, normal_gnn, norm, vn_aggregator, eigel) in enumerate(zip(self.edge_encoders, 
+                                        self.subgraph_layers, self.traditional_gnns, self.norms, self.vn_aggregators, self.eigels)):
             # if ori_edge_attr is not None: # Encode edge attr for each layer
-            if self.igel_length is not None and self.igel_edge_encodings:
+            if self.igel_length is not None and self.igel_edge_encodings and ori_edge_has_attr:
                 if isinstance(self.input_encoder, DiscreteEncoder):
                     edge_attr_embeddings = edge_encoder(ori_edge_attr[:, :-self.igel_length].int())
                     edge_attr_igel = ori_edge_attr[:, -self.igel_length:]
@@ -295,21 +358,43 @@ class GNNAsKernel(nn.Module):
                     data.edge_attr = edge_encoder(ori_edge_attr)
             else:
                 data.edge_attr = edge_encoder(ori_edge_attr)
+            raw_edge_attr = data.edge_attr
+
             data.x = x
-            if self.num_inner_layers == 0: 
-                # standard message passing nn 
-                if self.gnn_type == 'PPGN':
-                    x = normal_gnn(data.x, data.edge_index, data.edge_attr, data.batch)
-                else:
-                    x = normal_gnn(data.x, data.edge_index, data.edge_attr)
-            else:
-                if self.use_normal_gnn:
+            if eigel is not None:
+                eigel_x, eigel_edge_attr = eigel(data)
+                data.x = eigel_x
+                data.edge_attr = eigel_edge_attr
+                x = data.x
+
+            if self.use_gnn:
+                if self.num_inner_layers == 0: 
+                    # standard message passing nn 
                     if self.gnn_type == 'PPGN':
-                        x = subgraph_layer(data) + normal_gnn(data.x, data.edge_index, data.edge_attr[:,:-self.hop_dim], data.batch)
+                        x = normal_gnn(data.x, data.edge_index, data.edge_attr, data.batch)
                     else:
-                        x = subgraph_layer(data) + normal_gnn(data.x, data.edge_index, data.edge_attr[:,:-self.hop_dim])
+                        x = normal_gnn(data.x, data.edge_index, data.edge_attr)
                 else:
-                    x = subgraph_layer(data)
+                    if eigel is None:
+                        if self.igel_length is not None:
+                            normal_gnn_edge_attr = torch.cat([
+                                raw_edge_attr[:,:-self.igel_length-self.hop_dim],
+                                raw_edge_attr[:,:-self.igel_length]
+                            ], dim=-1)
+                        else:
+                            normal_gnn_edge_attr = raw_edge_attr[:,:-self.hop_dim]
+                    else:
+                        normal_gnn_edge_attr = data.edge_attr
+                    if self.use_normal_gnn:
+                        if self.gnn_type == 'PPGN':
+                            x = subgraph_layer(data) + normal_gnn(data.x, data.edge_index, normal_gnn_edge_attr, data.batch)
+                        else:
+                            x = subgraph_layer(data) + normal_gnn(data.x, data.edge_index, normal_gnn_edge_attr)
+                    else:
+                        x = subgraph_layer(data)
+
+            # Reset edge attribute after the GNN executes
+            data.edge_attr = raw_edge_attr
 
             x = norm(x)
             x = F.relu(x)
@@ -324,7 +409,7 @@ class GNNAsKernel(nn.Module):
 
         if not self.node_embedding:
             x = scatter(x, data.batch, dim=0, reduce=self.pooling)
-            
+        
         x = F.dropout(x, self.dropout, training=self.training)  
         x = self.output_decoder(x) 
         return x 
