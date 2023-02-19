@@ -81,6 +81,11 @@ do
             TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
           done
           echo "[$(date '+%Y-%m-%d %H:%M')] Executing: ${JOB_COMMAND}"
+          ${JOB_COMMAND} &
+
+          # Sleep after submitting the job to wait until memory gets allocated
+          echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping for 300 seconds after submission."
+          sleep 300
           # Only run the no-GNN once if we are not in the full EIGEL layout
           if [ "$LEAVE_GNN_BRANCH" == "True" ]; then
             break
