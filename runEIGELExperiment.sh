@@ -9,6 +9,10 @@ MAX_MEMORY=${3:-30000}
 # MAX_DISTANCES is a list of encoding distances that we will check through
 MAX_DISTANCES=${4:-1 2}
 
+# EXTRA_PARAMS is a list of extra parameters to append to all jobs
+EXTRA_PARAMS=${5:-eigel.embedding_dim 128}
+DELAY_BETWEEN_JOB_RUNS=120
+
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
 declare -A PROBLEM_LAYERS
@@ -24,7 +28,7 @@ PROBLEM_LAYERS["tu_datasets"]="4"
 
 # Define the max. degree per problem
 declare -A PROBLEM_DEGREE
-PROBLEM_LAYERS["exp"]="12"
+PROBLEM_DEGREE["exp"]="12"
 PROBLEM_DEGREE["zinc"]="8"
 PROBLEM_DEGREE["pattern"]="220"
 PROBLEM_DEGREE["cifar10"]="8"
@@ -80,12 +84,12 @@ do
             CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
             TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
           done
-          echo "[$(date '+%Y-%m-%d %H:%M')] Executing: ${JOB_COMMAND}"
-          ${JOB_COMMAND} &
+          echo "[$(date '+%Y-%m-%d %H:%M')] Executing: ${JOB_COMMAND} ${EXTRA_PARAMS}"
+          ${JOB_COMMAND} ${EXTRA_PARAMS} &
 
           # Sleep after submitting the job to wait until memory gets allocated
-          echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping for 300 seconds after submission."
-          sleep 300
+          echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping for ${DELAY_BETWEEN_JOB_RUNS} seconds after submission."
+          sleep ${DELAY_BETWEEN_JOB_RUNS}
           # Only run the no-GNN once if we are not in the full EIGEL layout
           if [ "$LEAVE_GNN_BRANCH" == "True" ]; then
             break
