@@ -73,9 +73,9 @@ do
           CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
           TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
           JOB_COMMAND="python -m train.${PROBLEM} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} eigel.max_degree ${MAX_DEGREE} eigel.layer_indices ${LAYER_LAYOUT} ${GNN_MINI_LAYER_CFG}"
-          echo "[$(date '+%Y-%M-%d %H:%m')] Found ${CURR_MEMORY} MB out of ${TOTAL_MEMORY} MB."
+          echo "[$(date '+%Y-%m-%d %H:%M')] Found ${CURR_MEMORY} MB out of ${TOTAL_MEMORY} MB."
           while (( $CURR_MEMORY > $MAX_MEMORY )); do
-            echo "[$(date '+%Y-%M-%d %H:%m')] Sleeping as ${CURR_MEMORY} MB is greater than ${MAX_MEMORY} MB."
+            echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping as ${CURR_MEMORY} MB is greater than ${MAX_MEMORY} MB."
             sleep 15
             CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
             TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
