@@ -9,9 +9,12 @@ MAX_MEMORY=${3:-30000}
 # MAX_DISTANCES is a list of encoding distances that we will check through
 MAX_DISTANCES=${4:-1 2}
 
+# MAX_DISTANCES is a list of encoding distances that we will check through
+MODEL_TYPES=${5:-joint disjoint}
+
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
-EXTRA_PARAMS=${5:-eigel.embedding_dim 128}
-DELAY_BETWEEN_JOB_RUNS=120
+EXTRA_PARAMS=${6:-eigel.embedding_dim 32}
+DELAY_BETWEEN_JOB_RUNS=30
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -50,7 +53,7 @@ EIGEL_HALF=`seq 0 $(( $HALF_LAYERS - 1 )) | tr '\n' ',' | sed 's/\(.*\),$/(\1)/g
 EIGEL_FULL=`seq 0 $(( $GNN_AK_LAYERS - 1 )) | tr '\n' ',' | sed 's/\(.*\),$/(\1)/g'`;
 
 # Run all the jobs as required
-for MODEL_TYPE in "joint" "disjoint"
+for MODEL_TYPE in $MODEL_TYPES
 do
   for MAX_DISTANCE in $MAX_DISTANCES
   do
@@ -63,8 +66,13 @@ do
           MINI_LAYER_CFG=""
         fi
 
+        EIGEL_USE_GNN="True"
+        if [ $MINI_LAYERS -lt 0 ]; then
+          EIGEL_USE_GNN="True False"
+        fi
+
         # Only use GNN _when actually needed, otherwise it's a no-op
-        for USE_GNN in "False" "True" 
+        for USE_GNN in $EIGEL_USE_GNN
         do
           LEAVE_GNN_BRANCH="True"
           GNN_MINI_LAYER_CFG="$MINI_LAYER_CFG"
@@ -80,7 +88,7 @@ do
           echo "[$(date '+%Y-%m-%d %H:%M')] Found ${CURR_MEMORY} MB out of ${TOTAL_MEMORY} MB."
           while (( $CURR_MEMORY > $MAX_MEMORY )); do
             echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping as ${CURR_MEMORY} MB is greater than ${MAX_MEMORY} MB."
-            sleep 15
+            sleep 60
             CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
             TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
           done
