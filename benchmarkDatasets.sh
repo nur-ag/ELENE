@@ -16,6 +16,6 @@
 ./runIGELExperiment.sh GINEConv pattern 16000 "0 1 2"
 
 # Run CIFAR experiments with 16-dim embeddings
-./runEIGELExperiment.sh GINEConv cifar10 15000 "1 2" "joint disjoint" "eigel.embedding_dim 32"
+./runEIGELExperiment.sh GINEConv cifar10 15000 "1 2" "joint disjoint" "eigel.embedding_dim 16"
 ./runIGELExperiment.sh GINEConv cifar10 15000 "0 1 2"
 

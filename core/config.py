@@ -125,9 +125,9 @@ def set_cfg(cfg):
     # ------------------------------------------------------------------------ #
     cfg.eigel = CN()
     # Maximum degree that can be encoded
-    cfg.eigel.max_degree = 50
+    cfg.eigel.max_degree = 0
     # Maximum distance that can be encoded
-    cfg.eigel.max_distance = 3
+    cfg.eigel.max_distance = 0
     # Whether to use relative (partitioned) degrees depending on the distance to the ego-root
     cfg.eigel.relative_degrees = True
     # Whether to use "disjoint" or "joint" embeddings
