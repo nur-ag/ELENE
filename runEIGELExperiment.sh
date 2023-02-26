@@ -14,7 +14,7 @@ MODEL_TYPES=${5:-joint disjoint}
 
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
 EXTRA_PARAMS=${6:-eigel.embedding_dim 32}
-DELAY_BETWEEN_JOB_RUNS=30
+DELAY_BETWEEN_JOB_RUNS=60
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -57,7 +57,13 @@ for MODEL_TYPE in $MODEL_TYPES
 do
   for MAX_DISTANCE in $MAX_DISTANCES
   do
-    for LAYER_LAYOUT in "$EIGEL_FIRST" "$EIGEL_HALF" "$EIGEL_FULL"
+    # Only use half-layers if there is actually a half!
+    LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_HALF $EIGEL_FULL"
+    if [ $GNN_AK_LAYERS -lt 3 ]; then
+        LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_FULL"
+    fi
+
+    for LAYER_LAYOUT in $LAYER_LAYOUTS
     do
       for MINI_LAYERS in -1 0
       do

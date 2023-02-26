@@ -12,9 +12,16 @@ TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([
 echo "[$(date '+%Y-%m-%d %H:%M')] Found ${CURR_MEMORY} MB out of ${TOTAL_MEMORY} MB."
 while (( $CURR_MEMORY > $MAX_MEMORY )); do
   echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping as ${CURR_MEMORY} MB is greater than ${MAX_MEMORY} MB."
-  sleep 15
+  sleep ${SLEEP_TIME}
   CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
   TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`
 done
 echo "[$(date '+%Y-%m-%d %H:%M')] Executing: ${JOB_COMMAND}"
 ${JOB_COMMAND} &
+
+# Wait until the job appears in nvidia-smi
+PROCESS_PID=$!
+while [ `nvidia-smi | grep $PROCESS_PID | wc -l` -ne "1" ]; do
+  echo "[$(date '+%Y-%m-%d %H:%M')] Waiting for ${PROCESS_PID} PID to show in nvidia-smi. Sleeping."
+  sleep ${SLEEP_TIME}
+done

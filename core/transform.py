@@ -79,7 +79,7 @@ class SubgraphsTransform(object):
 
         data.subgraphs_batch = subgraphs_nodes[0]
         data.subgraphs_nodes_mapper = subgraphs_nodes[1]
-        data.subgraphs_edge_batch = subgraphs_edges[0]
+        data.subgraphs_edge_source = subgraphs_edges[0]
         data.subgraphs_edges_mapper = subgraphs_edges[1]
         data.combined_subgraphs = combined_subgraphs
         data.hop_indicator = hop_indicator

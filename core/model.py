@@ -270,7 +270,7 @@ class GNNAsKernel(nn.Module):
         # EIGEL extensions
         self.eigels = []
         for i in range(nlayer_outer):
-            if not eigel_max_degree and not eigel_max_distance and i not in eigel_layer_indices:
+            if (not eigel_max_degree and not eigel_max_distance) or (i not in eigel_layer_indices):
                 self.eigels.append(None)
                 continue
 

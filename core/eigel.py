@@ -215,7 +215,7 @@ class EIGELMessagePasser(nn.Module):
 
     def forward(self, data):
         combined_subgraphs_x = data.x[data.subgraphs_nodes_mapper]
-        source_indices = data.subgraphs_edge_batch
+        source_indices = data.subgraphs_edge_source
         combined_subgraphs_edge_idx = data.edge_index[:, data.subgraphs_edges_mapper]
         combined_subgraphs_edge_attr = data.edge_attr[data.subgraphs_edges_mapper]
         edge_indices_a = combined_subgraphs_edge_idx[0]
