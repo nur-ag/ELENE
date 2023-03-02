@@ -1,9 +1,10 @@
 import torch
+import os.path as osp
 import pickle, os, numpy as np
 import scipy.io as sio
 # from math import comb
 from scipy.special import comb
-from torch_geometric.data import InMemoryDataset
+from torch_geometric.data import InMemoryDataset, download_url, extract_zip
 from torch_geometric.data.data import Data
 from torch_geometric.utils import to_undirected
 import networkx as nx
@@ -13,6 +14,43 @@ from core.data_utils.data_pna import GraphPropertyDataset
 from core.data_utils.data_cycles import CyclesDataset
 from core.data_utils.sbm_cliques import CliqueSBM
 from core.data_utils.tudataset_gin_split import TUDatasetGINSplit
+
+
+
+class ProximityDataset(InMemoryDataset):
+    """Implements an in-memory dataset for the K-Proximity datasets
+    proposed by Abboud et al. in Shortest Path Networks for Graph Property Prediction
+    (LoG 2022).
+    """
+    url = "https://zenodo.org/record/6557736/files/Proximity.zip?download=1"
+    valid_k = (1, 3, 5, 8, 10)
+    def __init__(self, root, k=1, pre_transform=None, transform=None):
+        self.k = k
+        if self.k not in self.valid_k:
+            raise ValueError(f"The value of `k` must be one of {self.valid_k}.")
+        super().__init__(root, pre_transform, transform)
+        self.data, self.slices = torch.load(self.processed_paths[0])
+
+    @property
+    def raw_file_names(self):
+        return [f"{self.k}-Prox/raw/data_list.pickle"]
+
+    @property
+    def processed_file_names(self):
+        return [f"{self.k}-data.pt"]
+
+    def download(self):
+        path = download_url(self.url, self.root)
+        extract_zip(path, self.root)
+
+    def process(self):
+        raw_data = osp.join(self.root, f"{self.k}-Prox", "raw", "data_list.pickle")
+        with open(raw_data, "rb") as f:
+            data_list = pickle.load(f)
+        if self.pre_transform is not None:
+            data_list = [self.pre_transform(data) for data in data_list]
+        torch.save(self.collate(data_list), self.processed_paths[0])
+
 
 class PlanarSATPairsDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
