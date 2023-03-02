@@ -375,16 +375,7 @@ class GNNAsKernel(nn.Module):
                     else:
                         x = normal_gnn(data.x, data.edge_index, data.edge_attr)
                 else:
-                    if eigel is None:
-                        if self.igel_length is not None:
-                            normal_gnn_edge_attr = torch.cat([
-                                raw_edge_attr[:,:-self.igel_length-self.hop_dim],
-                                raw_edge_attr[:,:-self.igel_length]
-                            ], dim=-1)
-                        else:
-                            normal_gnn_edge_attr = raw_edge_attr[:,:-self.hop_dim]
-                    else:
-                        normal_gnn_edge_attr = data.edge_attr
+                    normal_gnn_edge_attr = data.edge_attr[:,:-self.hop_dim]
                     if self.use_normal_gnn:
                         if self.gnn_type == 'PPGN':
                             x = subgraph_layer(data) + normal_gnn(data.x, data.edge_index, normal_gnn_edge_attr, data.batch)
