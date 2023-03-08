@@ -274,7 +274,7 @@ class GNNAsKernel(nn.Module):
                 self.eigels.append(None)
                 continue
 
-            if eigel_model_type in ("joint", "disjoint"):
+            if eigel_model_type.split("-")[0] in ("joint", "disjoint"):
                 # Figure out if we should reuse any embedding matrix or not
                 given_embedders = None
                 if i > 0 and eigel_reuse_embeddings not in (False, "no"):
@@ -299,6 +299,7 @@ class GNNAsKernel(nn.Module):
 
                 # Define embedder and layer
                 joint_embeddings = eigel_model_type == "joint"
+                node_only = eigel_model_type.endswith("-nodeonly")
                 eigel_embedder = EIGELEmbedder(
                     max_degree=eigel_max_degree,
                     max_distance=eigel_max_distance,
@@ -306,6 +307,7 @@ class GNNAsKernel(nn.Module):
                     joint_embeddings=joint_embeddings,
                     embedding_dim=eigel_embedding_dim,
                     given_embedders=given_embedders,
+                    node_only=node_only,
                 )
                 eigel = EIGELMessagePasser(
                     nhid, edge_emd_dim, mlp_layers=1, max_degree=eigel_max_degree, max_distance=eigel_max_distance,
@@ -364,7 +366,8 @@ class GNNAsKernel(nn.Module):
             if eigel is not None:
                 eigel_x, eigel_edge_attr = eigel(data)
                 data.x = eigel_x
-                data.edge_attr = eigel_edge_attr
+                if eigel_edge_attr is not None:
+                    data.edge_attr = eigel_edge_attr
                 x = data.x
 
             if self.use_gnn:

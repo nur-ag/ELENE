@@ -14,7 +14,9 @@ MODEL_TYPES=${5:-joint disjoint}
 
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
 EXTRA_PARAMS=${6:-eigel.embedding_dim 32}
-DELAY_BETWEEN_JOB_RUNS=60
+
+# DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
+DELAY_BETWEEN_JOB_RUNS=${7:-60}
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -26,8 +28,9 @@ PROBLEM_LAYERS["cifar10"]="4"
 PROBLEM_LAYERS["molhiv"]="2"
 PROBLEM_LAYERS["molpcba"]="5"
 PROBLEM_LAYERS["graph_property"]="6"
-PROBLEM_LAYERS["counting"]="6"
+PROBLEM_LAYERS["counting"]="3"
 PROBLEM_LAYERS["tu_datasets"]="4"
+PROBLEM_LAYERS["proximity"]="3"
 
 # Define the max. degree per problem
 declare -A PROBLEM_DEGREE
@@ -40,6 +43,7 @@ PROBLEM_DEGREE["molpcba"]="10"
 PROBLEM_DEGREE["graph_property"]="46"
 PROBLEM_DEGREE["counting"]="12"
 PROBLEM_DEGREE["tu_datasets"]="50" # Using highest -- Enzymes: 18; MUTAG/PTC_MR: 8; PROTEINS: 50
+PROBLEM_DEGREE["proximity"]="0" # Ignore degree information
 
 # Get the number of layers and degrees
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)
@@ -59,7 +63,7 @@ do
   do
     # Only use half-layers if there is actually a half!
     LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_HALF $EIGEL_FULL"
-    if [ $GNN_AK_LAYERS -lt 3 ]; then
+    if [ $GNN_AK_LAYERS -le 3 ]; then
         LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_FULL"
     fi
 

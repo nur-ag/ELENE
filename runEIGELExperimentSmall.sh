@@ -14,7 +14,9 @@ MODEL_TYPES=${5:-joint disjoint}
 
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
 EXTRA_PARAMS=${6:-eigel.embedding_dim 32}
-DELAY_BETWEEN_JOB_RUNS=60
+
+# DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
+DELAY_BETWEEN_JOB_RUNS=${7:-60}
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -26,8 +28,9 @@ PROBLEM_LAYERS["cifar10"]="4"
 PROBLEM_LAYERS["molhiv"]="2"
 PROBLEM_LAYERS["molpcba"]="5"
 PROBLEM_LAYERS["graph_property"]="6"
-PROBLEM_LAYERS["counting"]="6"
+PROBLEM_LAYERS["counting"]="3"
 PROBLEM_LAYERS["tu_datasets"]="4"
+PROBLEM_LAYERS["proximity"]="3"
 
 # Define the max. degree per problem
 declare -A PROBLEM_DEGREE
@@ -40,6 +43,7 @@ PROBLEM_DEGREE["molpcba"]="10"
 PROBLEM_DEGREE["graph_property"]="46"
 PROBLEM_DEGREE["counting"]="12"
 PROBLEM_DEGREE["tu_datasets"]="50" # Using highest -- Enzymes: 18; MUTAG/PTC_MR: 8; PROTEINS: 50
+PROBLEM_DEGREE["proximity"]="0" # Ignore degree information
 
 # Get the number of layers and degrees
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)
@@ -66,7 +70,7 @@ do
           MINI_LAYER_CFG=""
         fi
 
-        JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} eigel.max_degree ${MAX_DEGREE} eigel.layer_indices ${LAYER_LAYOUT} ${GNN_MINI_LAYER_CFG}"
+        JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} eigel.max_degree ${MAX_DEGREE} eigel.layer_indices ${LAYER_LAYOUT} ${MINI_LAYER_CFG}"
         ./runCommandOnGPUMemThreshold.sh "${JOB_COMMAND} ${EXTRA_PARAMS}" ${MAX_MEMORY}
 
         # Sleep after submitting the job to wait until memory gets allocated

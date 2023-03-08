@@ -12,8 +12,8 @@ IGEL_DISTANCES=${4:-0 1 2}
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
 EXTRA_PARAMS=${5:-igel.use_edge_encodings True}
 
-# MAX_MEMORY is the memory threshold after which this script sleeps before submitting new jobs
-DELAY_BETWEEN_JOB_RUNS=120
+# DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
+DELAY_BETWEEN_JOB_RUNS=${6:-120}
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -25,8 +25,9 @@ PROBLEM_LAYERS["cifar10"]="4"
 PROBLEM_LAYERS["molhiv"]="2"
 PROBLEM_LAYERS["molpcba"]="5"
 PROBLEM_LAYERS["graph_property"]="6"
-PROBLEM_LAYERS["counting"]="6"
+PROBLEM_LAYERS["counting"]="3"
 PROBLEM_LAYERS["tu_datasets"]="4"
+PROBLEM_LAYERS["proximity"]="3"
 
 # We run a version of the problem with half of the layers
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)

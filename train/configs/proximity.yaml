@@ -1,16 +1,20 @@
 dataset: Proximity
 train:
-  batch_size: 32
-  lr_patience: 20
+  batch_size: 15
+  lr_patience: 15
   epochs: 50
+
+eigel:
+  reuse_embeddings: "all"
 
 model:
   mini_layers: 1
   hidden_size: 64
+  mlp_layers: 2
   num_layers: 3
   pool: add
   embs: (0, 1, 2)
   embs_combine_mode: 'concat'
 
 subgraph:
-  hops: 3
+  hops: 5

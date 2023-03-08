@@ -21,7 +21,13 @@ ${JOB_COMMAND} &
 
 # Wait until the job appears in nvidia-smi
 PROCESS_PID=$!
+COUNTER=0
 while [ `nvidia-smi | grep $PROCESS_PID | wc -l` -ne "1" ]; do
-  echo "[$(date '+%Y-%m-%d %H:%M')] Waiting for ${PROCESS_PID} PID to show in nvidia-smi. Sleeping."
+  echo "[$(date '+%Y-%m-%d %H:%M')] Waiting for ${PROCESS_PID} PID to show in nvidia-smi. Sleeping (Try: ${COUNTER})."
   sleep ${SLEEP_TIME}
+  COUNTER=$((COUNTER + 1))
+  if [ $COUNTER -ge 30 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M')] Exiting as the job has not appeared in nvidia-smi after ${COUNTER} tries."
+    break
+  fi
 done

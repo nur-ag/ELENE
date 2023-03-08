@@ -15,13 +15,15 @@ class EIGELEmbedder(nn.Module):
             use_relative_degrees=True,
             joint_embeddings=False,
             embedding_dim=None,
-            given_embedders=None
+            given_embedders=None,
+            node_only=False,
         ):
         super().__init__()
         self.max_degree = max_degree
         self.max_distance = max_distance
         self.use_relative_degrees = use_relative_degrees
         self.joint_embeddings = joint_embeddings
+        self.node_only = node_only
 
         self._num_degree_types = 3 if use_relative_degrees else 1
         if not self.joint_embeddings:
@@ -178,6 +180,8 @@ class EIGELEmbedder(nn.Module):
 
     def forward(self, data):
         node_eigel_emb = self.compute_node_embedding(data)
+        if self.node_only:
+            return node_eigel_emb
         edge_eigel_emb = self.compute_edge_embedding(data)
         return node_eigel_emb, edge_eigel_emb
 
@@ -203,15 +207,19 @@ class EIGELMessagePasser(nn.Module):
         else:
             self.eigel_embedder = EIGELEmbedder(max_degree, max_distance, use_relative_degrees, joint_embeddings)
         self.subgraph_transform = MLP(2 * nhid + self.eigel_embedder.node_embedder_size, nhid, nlayer=mlp_layers, with_final_activation=True)
-        self.relative_transform = MLP(2 * nhid + edge_emd_dim + self.eigel_embedder.edge_embedder_size, edge_emd_dim, nlayer=mlp_layers, with_final_activation=True)
-        self.output_transform = MLP(2 * nhid + edge_emd_dim, nhid, nlayer=mlp_layers, with_final_activation=True)
+        if not self.eigel_embedder.node_only:
+            self.relative_transform = MLP(2 * nhid + edge_emd_dim + self.eigel_embedder.edge_embedder_size, edge_emd_dim, nlayer=mlp_layers, with_final_activation=True)
+            self.output_transform = MLP(2 * nhid + edge_emd_dim, nhid, nlayer=mlp_layers, with_final_activation=True)
+        else:
+            self.output_transform = MLP(2 * nhid, nhid, nlayer=mlp_layers, with_final_activation=True)
         self.sum_weights = nn.Parameter(torch.ones(4))
 
     def reset_parameters(self):
         self.eigel_embedder.reset_parameters()
         self.subgraph_transform.reset_parameters()
-        self.relative_transform.reset_parameters()
         self.output_transform.reset_parameters()
+        if not self.eigel_embedder.node_only:
+            self.relative_transform.reset_parameters()
 
     def forward(self, data):
         combined_subgraphs_x = data.x[data.subgraphs_nodes_mapper]
@@ -221,13 +229,15 @@ class EIGELMessagePasser(nn.Module):
         edge_indices_a = combined_subgraphs_edge_idx[0]
         edge_indices_b = combined_subgraphs_edge_idx[1]
 
-        # Compute node and edge masks based on distance
-        node_distance_mask = (data.subgraph_node_hops <= self.max_distance).reshape(-1, 1)
-        edge_pair_distance_mask = data.subgraph_edge_hops <= self.max_distance
-        edge_distance_mask = (edge_pair_distance_mask[:, 0] * edge_pair_distance_mask[:, 1]).reshape(-1, 1)
-
         # Compute EIGEL features for the subgraph nodes and edges
-        node_eigel_emb, edge_eigel_emb = self.eigel_embedder(data)
+        node_distance_mask = (data.subgraph_node_hops <= self.max_distance).reshape(-1, 1)
+        if self.eigel_embedder.node_only:
+            node_eigel_emb = self.eigel_embedder(data)
+            edge_eigel_emb = None
+        else:
+            edge_pair_distance_mask = data.subgraph_edge_hops <= self.max_distance
+            edge_distance_mask = (edge_pair_distance_mask[:, 0] * edge_pair_distance_mask[:, 1]).reshape(-1, 1)
+            node_eigel_emb, edge_eigel_emb = self.eigel_embedder(data)
 
         # Compute subgraph message, collecting all node information with the root
         root_features = data.x[data.subgraphs_batch]
@@ -235,36 +245,42 @@ class EIGELMessagePasser(nn.Module):
         subgraph_message = torch.cat([root_features, node_features, node_eigel_emb], dim=-1)
         subgraph_message = self.subgraph_transform(subgraph_message)
 
-        # Get features alongside the edge and ego root
-        ego_source_x = combined_subgraphs_x[source_indices]
-        edge_messages_a = combined_subgraphs_x[edge_indices_a]
-        edge_messages_b = combined_subgraphs_x[edge_indices_b]
-
-        # Represent edge-wise combination as an element-wise product
-        edge_messages = edge_messages_a * edge_messages_b
-
-        # The message is the edge messages (root features, edge features, aggregated edges, EIGEL degrees and deltas) merged
-        edge_message = torch.cat([ego_source_x, combined_subgraphs_edge_attr, edge_messages, edge_eigel_emb], dim=-1)
-        rel_message = self.relative_transform(edge_message)
-
-        # Compute the aggregate relative and subgraph messages
+        # Compute the aggregate subgraph and relative messages if necessary
         subgraph_mask_weight = scatter(node_distance_mask, data.subgraphs_batch, dim_size=data.num_nodes, dim=0, reduce="sum")
         subgraph_mask_weight = torch.maximum(subgraph_mask_weight, subgraph_mask_weight.new_ones(subgraph_mask_weight.shape))
         subgraph_raw_msg = scatter(subgraph_message * node_distance_mask, data.subgraphs_batch, dim_size=data.num_nodes, dim=0, reduce="sum")
         subgraph_msg = subgraph_raw_msg / subgraph_mask_weight
-
-        relative_mask_weight = scatter(edge_distance_mask, source_indices, dim_size=data.num_nodes, dim=0, reduce="sum")
-        relative_mask_weight = torch.maximum(relative_mask_weight, relative_mask_weight.new_ones(relative_mask_weight.shape))
-        relative_raw_msg = scatter(rel_message * edge_distance_mask, source_indices, dim_size=data.num_nodes, dim=0, reduce="sum")
-        relative_msg = relative_raw_msg / relative_mask_weight
         assert data.x.shape[0] == subgraph_msg.shape[0] and data.x.shape[1] == subgraph_msg.shape[1], "Subgraph message shapes must match the input node feature shape!"
-        assert data.x.shape[0] == relative_msg.shape[0] and data.edge_attr.shape[1] == relative_msg.shape[1], f"Relative message shapes must match the input edge feature shape ({data.edge_attr.shape} vs {relative_msg.shape})!"
-        combined_msg = torch.cat([data.x, subgraph_msg, relative_msg], dim=-1)
-        
-        # Produce a replacement for node and edge features _with_ EIGEL encodings
+
+        if edge_eigel_emb is not None:
+            # Get features alongside the edge and ego root
+            ego_source_x = combined_subgraphs_x[source_indices]
+            edge_messages_a = combined_subgraphs_x[edge_indices_a]
+            edge_messages_b = combined_subgraphs_x[edge_indices_b]
+
+            # Represent edge-wise combination as an element-wise product
+            edge_messages = edge_messages_a * edge_messages_b
+
+            # The message is the edge messages (root features, edge features, aggregated edges, EIGEL degrees and deltas) merged
+            edge_message = torch.cat([ego_source_x, combined_subgraphs_edge_attr, edge_messages, edge_eigel_emb], dim=-1)
+            rel_message = self.relative_transform(edge_message)
+
+            relative_mask_weight = scatter(edge_distance_mask, source_indices, dim_size=data.num_nodes, dim=0, reduce="sum")
+            relative_mask_weight = torch.maximum(relative_mask_weight, relative_mask_weight.new_ones(relative_mask_weight.shape))
+            relative_raw_msg = scatter(rel_message * edge_distance_mask, source_indices, dim_size=data.num_nodes, dim=0, reduce="sum")
+            relative_msg = relative_raw_msg / relative_mask_weight
+            assert data.x.shape[0] == relative_msg.shape[0] and data.edge_attr.shape[1] == relative_msg.shape[1], f"Relative message shapes must match the input edge feature shape ({data.edge_attr.shape} vs {relative_msg.shape})!"
+            combined_msg = torch.cat([data.x, subgraph_msg, relative_msg], dim=-1)
+
+            # Produce a replacement for node and edge features _with_ EIGEL encodings
+            x_out = self.output_transform(combined_msg)
+            composite_x = data.x * self.sum_weights[0] + x_out * self.sum_weights[1]
+            edge_attr_out = scatter(rel_message, data.subgraphs_edges_mapper, dim_size=data.edge_index.shape[1], dim=0, reduce=self.pooling)
+            composite_edge_attr = data.edge_attr * self.sum_weights[2] + edge_attr_out * self.sum_weights[3]
+            return composite_x, composite_edge_attr
+        # Produce a replacement for node features _with_ EIGEL encodings
+        combined_msg = torch.cat([data.x, subgraph_msg], dim=-1)
         x_out = self.output_transform(combined_msg)
         composite_x = data.x * self.sum_weights[0] + x_out * self.sum_weights[1]
-        edge_attr_out = scatter(rel_message, data.subgraphs_edges_mapper, dim_size=data.edge_index.shape[1], dim=0, reduce=self.pooling)
-        composite_edge_attr = data.edge_attr * self.sum_weights[2] + edge_attr_out * self.sum_weights[3]
-        return composite_x, composite_edge_attr
+        return composite_x, None
 

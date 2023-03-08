@@ -23,7 +23,7 @@ def config_logger(cfg, OUT_PATH="results/", time=False):
                     f'Reg[{cfg.train.dropout}-{cfg.train.wd}] Seed[{cfg.seed}] GPU[{cfg.device}]'
     if INCLUDE_EIGEL:
         eigel_rel = "Y" if cfg.eigel.relative_degrees else "N"
-        eigel_model_type = cfg.eigel.model_type[0].upper()
+        eigel_model_type = "".join([token[0].upper() for token in cfg.eigel.model_type.split("-")])
         use_gnn = "Y" if cfg.use_gnn else "N"
         config_string = f'{config_string} '\
                         f'EIGEL[{cfg.eigel.max_degree}-{cfg.eigel.max_distance}-{eigel_rel}{eigel_model_type}-{cfg.eigel.embedding_dim}-{cfg.eigel.reuse_embeddings}-{cfg.eigel.layer_indices}-{use_gnn}]'\
