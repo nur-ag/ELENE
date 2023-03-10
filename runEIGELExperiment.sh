@@ -9,14 +9,17 @@ MAX_MEMORY=${3:-30000}
 # MAX_DISTANCES is a list of encoding distances that we will check through
 MAX_DISTANCES=${4:-1 2}
 
-# MAX_DISTANCES is a list of encoding distances that we will check through
+# MODEL_TYPES is the set of EIGEL model types that we check
 MODEL_TYPES=${5:-joint disjoint}
 
+# MINI_SETUPS are the mini-layer configurations for GNN-AK, where -1 just uses the default
+MINI_SETUPS=${6:-0 -1}
+
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
-EXTRA_PARAMS=${6:-eigel.embedding_dim 32}
+EXTRA_PARAMS=${7:-eigel.embedding_dim 32}
 
 # DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
-DELAY_BETWEEN_JOB_RUNS=${7:-60}
+DELAY_BETWEEN_JOB_RUNS=${8:-60}
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -69,7 +72,7 @@ do
 
     for LAYER_LAYOUT in $LAYER_LAYOUTS
     do
-      for MINI_LAYERS in -1 0
+      for MINI_LAYERS in $MINI_SETUPS
       do
         MINI_LAYER_CFG="model.mini_layers $MINI_LAYERS"
         if [ $MINI_LAYERS -lt 0 ]; then

@@ -1,8 +1,8 @@
 dataset: Proximity
 train:
-  batch_size: 15
-  lr_patience: 15
-  epochs: 50
+  batch_size: 16
+  lr_patience: 10
+  epochs: 30
 
 eigel:
   reuse_embeddings: "all"
