@@ -1,3 +1,4 @@
+import copy
 import torch
 from core.config import cfg, update_cfg
 from core.train_helper import run 
@@ -39,8 +40,8 @@ def create_dataset(cfg):
         train_dataset = dataset_list
     else:
         train_dataset = dataset
-    val_dataset = dataset_list
-    test_dataset = dataset_list
+    val_dataset = [copy.deepcopy(x) for x in dataset_list]
+    test_dataset = [copy.deepcopy(x) for x in dataset_list]
     print('------------All--------------')
     calculate_stats(dataset)
     # exit(0)
