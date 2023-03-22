@@ -33,7 +33,9 @@ PROBLEM_LAYERS["molpcba"]="5"
 PROBLEM_LAYERS["graph_property"]="6"
 PROBLEM_LAYERS["counting"]="3"
 PROBLEM_LAYERS["tu_datasets"]="4"
+PROBLEM_LAYERS["tu_datasets_gin_split"]="4"
 PROBLEM_LAYERS["proximity"]="3"
+PROBLEM_LAYERS["sr25"]="2"
 
 # Define the max. degree per problem
 declare -A PROBLEM_DEGREE
@@ -46,7 +48,9 @@ PROBLEM_DEGREE["molpcba"]="10"
 PROBLEM_DEGREE["graph_property"]="46"
 PROBLEM_DEGREE["counting"]="12"
 PROBLEM_DEGREE["tu_datasets"]="50" # Using highest -- Enzymes: 18; MUTAG/PTC_MR: 8; PROTEINS: 50
+PROBLEM_DEGREE["tu_datasets_gin_split"]="50" # Using highest -- Enzymes: 18; MUTAG/PTC_MR: 8; PROTEINS: 50
 PROBLEM_DEGREE["proximity"]="0" # Ignore degree information
+PROBLEM_DEGREE["sr25"]="25" # Upper bound degree by total number of nodes
 
 # Get the number of layers and degrees
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)
@@ -73,7 +77,11 @@ do
           MINI_LAYER_CFG=""
         fi
 
-        JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} eigel.max_degree ${MAX_DEGREE} eigel.layer_indices ${LAYER_LAYOUT} ${MINI_LAYER_CFG}"
+        DEGREE_ARGS="eigel.max_degree ${MAX_DEGREE}"
+        if [ $(echo "$EXTRA_ARGS" | grep "eigel.max_degree" | wc -l) -gt 0 ]; then
+          DEGREE_ARGS=""
+        fi
+        JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} ${DEGREE_ARGS} eigel.layer_indices ${LAYER_LAYOUT} ${MINI_LAYER_CFG}"
         ./runCommandOnGPUMemThreshold.sh "${JOB_COMMAND} ${EXTRA_PARAMS}" ${MAX_MEMORY}
 
         # Sleep after submitting the job to wait until memory gets allocated

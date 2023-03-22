@@ -8,6 +8,10 @@ from core.transform import SubgraphsTransform
 from core.data import PlanarSATPairsDataset, calculate_stats
 
 def create_dataset(cfg): 
+    # Set the count transform to identity to avoid numerical stability issues
+    import embedders as E
+    E.count_transform = lambda x, y: x
+
     # No need to do offline transformation
     transform = SubgraphsTransform(cfg.subgraph.hops, 
                                    walk_length=cfg.subgraph.walk_length, 
