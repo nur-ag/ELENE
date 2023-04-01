@@ -1,6 +1,5 @@
 # params
-# 10/6/2022, newest packages. 
-ENV=gnn_ak
+ENV=eigel
 
 # create env 
 conda create --name $ENV python=3.10 -y
