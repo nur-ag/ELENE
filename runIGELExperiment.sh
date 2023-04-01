@@ -9,11 +9,14 @@ MAX_MEMORY=${3:-30000}
 # IGEL_DISTANCES is a list of encoding distances that we will check through
 IGEL_DISTANCES=${4:-0 1 2}
 
+# MINI_SETUPS are the mini-layer configurations for GNN-AK, where -1 just uses the default
+MINI_SETUPS=${5:-0 -1}
+
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
-EXTRA_PARAMS=${5:-igel.use_edge_encodings True}
+EXTRA_PARAMS=${6:-igel.use_edge_encodings True}
 
 # DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
-DELAY_BETWEEN_JOB_RUNS=${6:-120}
+DELAY_BETWEEN_JOB_RUNS=${7:-120}
 
 # Define the number of 'classic' GNN layers used in the GNN-AK paper
 # We will run each experiment with the original configuration, and with half.
@@ -27,7 +30,10 @@ PROBLEM_LAYERS["molpcba"]="5"
 PROBLEM_LAYERS["graph_property"]="6"
 PROBLEM_LAYERS["counting"]="3"
 PROBLEM_LAYERS["tu_datasets"]="4"
+PROBLEM_LAYERS["tu_datasets_gin_split"]="4"
 PROBLEM_LAYERS["proximity"]="3"
+PROBLEM_LAYERS["sr25"]="2"
+PROBLEM_LAYERS["pair3wl"]="2"
 
 # We run a version of the problem with half of the layers
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)
@@ -42,7 +48,7 @@ do
 
   for REL_DEGREE in $IGEL_REL_DEGREES
   do
-    for MINI_LAYERS in -1 0
+    for MINI_LAYERS in $MINI_SETUPS
     do
       MINI_LAYER_CFG="model.mini_layers $MINI_LAYERS"
       if [ $MINI_LAYERS -lt 0 ]; then
