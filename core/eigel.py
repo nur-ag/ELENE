@@ -175,7 +175,7 @@ class EIGELEmbedder(nn.Module):
 
             edge_delta_emb_a = self.delta_embedder(edge_distance_a * self._num_degree_types + edge_delta_a)
             edge_delta_emb_b = self.delta_embedder(edge_distance_b * self._num_degree_types + edge_delta_b)
-            edge_eigel_emb = torch.cat([edge_emb_degree_a * edge_emb_degree_b, edge_delta_emb_a * edge_delta_emb_b], dim=-1)
+            edge_eigel_emb = torch.cat([edge_emb_degree_a + edge_emb_degree_b, edge_delta_emb_a + edge_delta_emb_b], dim=-1)
         return edge_eigel_emb
 
     def forward(self, data):
