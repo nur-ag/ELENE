@@ -1,0 +1,14 @@
+dataset: pair3wl
+model:
+  num_layers: 3
+  mini_layers: 1
+  embs: (0, 1, 2)
+  embs_combine_mode: 'concat'
+  pool: add
+subgraph:
+  hops: 2
+  online: True
+train:
+  lr: 0.005
+  epochs: 400
+  runs: 1
