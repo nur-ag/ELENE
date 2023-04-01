@@ -1,6 +1,8 @@
 # Simple yet Powerful MP-GNNs from Explicit Ego-Network Attributes
 
-Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel)
+Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel). 
+
+We introduce three explicit ego-network attribute encodings --- IGEL, EIGEL and EIGEL-L. This code is sufficient to reproduce all the results reported in our paper. Using our configurations and scripts, you may also reproduce results from the original GNN-AK.
 
 ## Setup 
 
