@@ -4,26 +4,28 @@ Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoSh
 
 We introduce three explicit ego-network attribute encodings --- IGEL, EIGEL and EIGEL-L. This code is sufficient to reproduce all the results reported in our paper. Using our configurations and scripts, you may also reproduce results from the original GNN-AK.
 
-## Setup 
+We provide an overview of our effort to keep [this research reproducible in REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
+
+## Setup
 
 This section follows the installation guide for GNN-As-Kernel, as we do not introduce new dependencies for consistency.
 
 ```
-# params
-ENV=eigel
+# environment name
+export ENV=eigel
 
 # create env 
 conda create --name $ENV python=3.10 -y
 conda activate $ENV
 
 # install pytorch 
-conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch -y
 
 # install pyg
-conda install pyg -c pyg
+conda install pyg -c pyg -y
 
 # install ogb 
-pip install ogb
+pip install ogb -y
 
 # install rdkit
 conda install -c conda-forge rdkit -y
@@ -36,7 +38,19 @@ pip install matplotlib
 # install jupyter and ipython 
 conda install -c conda-forge nb_conda -y
 
+# install igraph for IGEL and missing networkx
+conda install -c conda-forge python-igraph -y
+pip install networkx dill
+
+# install torch-scatter, torch-cluster and torch-sparse
+# note: this is hard to automate, and requires finding the appropriate version for your system
+# using conda makes it easier, but your mileage may vary
+conda install pytorch-scatter -c pyg -y
+conda install pytorch-sparse -c pyg -y
+conda install pytorch-cluster -c pyg -y
 ```
+
+Note that we provide a `setup.sh` for convenience. However, we recommend that this script be executed manually line by line to ensure that each installation step executes correctly.
 
 ## Code structure
 
@@ -47,13 +61,13 @@ We introduce IGEL, EIGEL and EIGEL-L in the GNN-AK codebase. See:
 
 The necessary sub-graph information required for EIGEL-L is introduced in `SubgraphsTransform` under `core/transform.py`.
 
-## Hyperparameters 
+## Hyperparameters
 
 See ``core/config.py`` for all the extended IGEL / EIGEL / EIGEL-L options.
 
 ## Reproducibility
 
-We provide several bash scripts to reproduce the results of each benchmark. The results reported in our paper are computed using them.
+For reproducibility details, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md). We provide several bash scripts to reproduce the results of each benchmark. The results reported in our paper are computed using them.
 See: `expressivityDatasets.sh`, `benchmarkDatasets.sh` and `proximityResults.sh`.
 
 To manage resources in our research cluster, we wrapped our execution scripts to detect the available GPU memory in our system.
