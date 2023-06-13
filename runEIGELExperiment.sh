@@ -37,6 +37,7 @@ PROBLEM_LAYERS["tu_datasets_gin_split"]="4"
 PROBLEM_LAYERS["proximity"]="3"
 PROBLEM_LAYERS["sr25"]="2"
 PROBLEM_LAYERS["pair3wl"]="2"
+PROBLEM_LAYERS["qm9"]="4"
 
 # Define the max. degree per problem
 declare -A PROBLEM_DEGREE
@@ -53,6 +54,7 @@ PROBLEM_DEGREE["tu_datasets_gin_split"]="50" # Using highest -- Enzymes: 18; MUT
 PROBLEM_DEGREE["proximity"]="0" # Ignore degree information
 PROBLEM_DEGREE["sr25"]="25" # Upper bound degree by total number of nodes
 PROBLEM_DEGREE["pair3wl"]="6" # The pair is formed by two strongly 6-regular graph
+PROBLEM_DEGREE["qm9"]="4"
 
 # Get the number of layers and degrees
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)

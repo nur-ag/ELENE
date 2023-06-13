@@ -1,0 +1,13 @@
+dataset: qm9
+model:
+  mini_layers: 1
+  num_layers: 4
+  embs: (0,1,2)
+  embs_combine_mode: concat
+subgraph:
+  hops: 3
+train:
+  lr_patience: 30
+  epochs: 300
+  runs: 5
+  

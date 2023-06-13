@@ -1,3 +1,5 @@
+import gzip
+import json
 import torch
 import os.path as osp
 import pickle, os, numpy as np
@@ -14,6 +16,68 @@ from core.data_utils.data_pna import GraphPropertyDataset
 from core.data_utils.data_cycles import CyclesDataset
 from core.data_utils.sbm_cliques import CliqueSBM
 from core.data_utils.tudataset_gin_split import TUDatasetGINSplit
+
+
+class QM9SplitsDataset(InMemoryDataset):
+    """A PyTorch Geometric dataset with the splits from GNN-FiLM,
+    following the code from SPNNs.
+
+    See: https://arxiv.org/pdf/2206.01003.pdf
+    """
+    def __init__(self, root, split="train", transform=None):
+        self.split = split
+        super().__init__(root, transform)
+        graphs = self.read_qm9(root, split, transform, root)
+        if transform:
+            graphs = [transform(g) for g in graphs]
+        self.data, self.slices = self.collate(graphs)
+
+        # Store the preprocessed dataset
+        prepro_path = self.processed_paths[0]
+        os.makedirs(osp.dirname(prepro_path), exist_ok=True)
+        torch.save((self.data, self.slices), prepro_path)
+
+    @property
+    def processed_file_names(self):
+        return f'{self.split}-qm9.pt'
+
+    def read_qm9(self, direc, file, transform_f, processed_root):
+        path = osp.join(direc, file + ".jsonl.gz")
+        with gzip.open(path, "r") as f:
+            data = f.read().decode("utf-8")
+            graphs = [json.loads(jline) for jline in data.splitlines()]
+            pyg_graphs = [
+                self.map_qm9_to_pyg(graph, make_undirected=True, remove_dup=False)
+                for graph in graphs
+            ]
+            return pyg_graphs
+
+    def map_qm9_to_pyg(self, json_file, make_undirected=True, remove_dup=False):
+        edge_index = np.array([[g[0], g[2]] for g in json_file["graph"]]).T
+        edge_attributes = np.array(
+            [g[1] - 1 for g in json_file["graph"]]
+        )
+
+        # This will invariably cost us edge types because we reduce duplicates
+        if make_undirected:
+            edge_index_reverse = edge_index[[1, 0], :]
+            # Concat and remove duplicates
+            if remove_dup:
+                edge_index = torch.LongTensor(
+                    np.unique(
+                        np.concatenate([edge_index, edge_index_reverse], axis=1), axis=1
+                    )
+                )
+            else:
+                edge_index = torch.LongTensor(
+                    np.concatenate([edge_index, edge_index_reverse], axis=1)
+                )
+                edge_attributes = torch.LongTensor(
+                    np.concatenate([edge_attributes, np.copy(edge_attributes)], axis=0)
+                )
+        x = torch.FloatTensor(np.array(json_file["node_features"]))
+        y = torch.FloatTensor(np.array(json_file["targets"]).T)
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attributes, y=y)
 
 
 class RookShrikhandeDataset(InMemoryDataset):
@@ -34,6 +98,41 @@ class RookShrikhandeDataset(InMemoryDataset):
         rook_data = Data(x=x, edge_index=rook_tensor, y=0)
         shrik_data = Data(x=x, edge_index=shrik_tensor, y=1)
         self.data, self.slices = self.collate([rook_data, shrik_data])
+
+
+class ColoredEdgesDataset(InMemoryDataset):
+    """Implements an in-memory distance-to-colored edges dataset
+
+    This is helpful to study expressivity from the point of view of edge information.
+    """
+    @property
+    def raw_file_names(self):
+        return f"{self.root}/data.json.gz"
+
+    @property
+    def processed_file_names(self):
+        return f"{self.task}-Coloring.pt"
+
+    def undirected_repeat(self, edge_index):
+        return torch.cat([edge_index, edge_index[[1, 0], :]], dim=-1)
+
+    def process(self):
+        with gzip.open(self.raw_file_names, "rt") as f:
+            flat_dataset = [sample for sample in json.load(f) if sample["task"] == self.task]
+        data_as_tensors = [
+            Data(
+                x=torch.Tensor(sample["x"]).long().reshape(-1, 1),
+                y=sample["y"],
+                edge_index=self.undirected_repeat(torch.Tensor(sample["edge_index"]).long()),
+                edge_attr=torch.Tensor(sample["edge_attr"]).long().repeat(2).reshape(-1, 1)
+            ) for sample in flat_dataset]
+        os.makedirs(f"{self.root}/processed/", exist_ok=True)
+        torch.save(self.collate(data_as_tensors), self.processed_paths[0])
+
+    def __init__(self, root, task, transform=None):
+        self.task = task
+        super().__init__(root, transform)
+        self.data, self.slices = torch.load(self.processed_paths[0])
 
 
 class ProximityDataset(InMemoryDataset):

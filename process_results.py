@@ -8,6 +8,7 @@ OGBG_DATASETS = ["ogbg-molhiv", "ogbg-molpcba"]
 BENCH = ["ZINC", "PATTERN", "CIFAR10"]
 EXPR = ["exp-classify", "sr25-classify", "count_substructures", "graph_property"]
 PROX = ["Proximity"]
+QM9 = ["qm9"]
 
 # Dataset result perf. metric formats
 USES_PERCENT = ["Proximity", "exp-clasify", "sr25-classify", "CIFAR10", "ogbg-molhiv"] + TU_DATASETS
@@ -15,16 +16,18 @@ BENCHMARKS_BY_PRECISION = {
     "expressivity": 3,
     "benchmark": 3,
     "proximity": 1,
-    "tu": 1
+    "tu": 1,
+    "qm9": 3,
 }
 
 # Datasets that we use for the tables in the paper
-FINAL_DATASETS = OGBG_DATASETS + BENCH + EXPR + PROX
+FINAL_DATASETS = OGBG_DATASETS + BENCH + EXPR + PROX + QM9
 DATASETS_BY_NAME = {
     "expressivity": EXPR,
     "proximity": PROX,
     "benchmark": BENCH + OGBG_DATASETS,
-    "tu": TU_DATASETS
+    "tu": TU_DATASETS,
+    "qm9": QM9,
 }
 
 # Analysis constants
@@ -52,6 +55,7 @@ DATASET_FORMATS = {
     "proximity": "Model",
     "benchmark": "Model",
     "tu": "Model",
+    "qm9": "Model",
 }
 
 # Load all the Tensorboard logs directly into Pandas
@@ -88,6 +92,14 @@ for log_dir in all_experiment_log_dirs:
 # Pull the best result per model type, dataset, task on both test set performance & memory
 df = pd.DataFrame.from_dict(combined_df_data)
 test_df = df[df.metric == "test-best-perf"]
+
+# Scale QM9 results and rename tasks for display
+from train.qm9 import TASKS as QM9_TASKS, CHEMICAL_ACC_NORMALISING_FACTORS
+test_df["last_datapoint"] = [
+    row["last_datapoint"] / (1 if row.dataset != "qm9" else CHEMICAL_ACC_NORMALISING_FACTORS[int(row["T"])])
+    for i, row in test_df.iterrows()
+]
+
 mem_df = df[df.metric == "memory"]
 def aggregate_data(metric_df, experiment_key=EXPERIMENT_KEY, metric_stats=METRIC_STATS):
     results_df = metric_df.groupby(
@@ -140,6 +152,10 @@ for benchmark, datasets in DATASETS_BY_NAME.items():
     rounding_precision = BENCHMARKS_BY_PRECISION[benchmark]
     best_df.btest_mean = best_df.btest_mean.round(rounding_precision)
     best_df.btest_std = best_df.btest_std.round(rounding_precision)
+
+    # Report the task as string
+    if benchmark == "qm9":
+        best_df["T"] = [QM9_TASKS[int(task)] for task in best_df["T"]]
 
     # Dump the results to separate files
     best_df.to_csv(f"tables/results_{benchmark}.csv")
