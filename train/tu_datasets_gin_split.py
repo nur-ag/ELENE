@@ -74,7 +74,8 @@ def create_model(cfg):
                         eigel_embedding_dim=cfg.eigel.embedding_dim,
                         eigel_reuse_embeddings=cfg.eigel.reuse_embeddings,
                         eigel_layer_indices=cfg.eigel.layer_indices,
-                        use_gnn=cfg.use_gnn)
+                        use_gnn=cfg.use_gnn,
+                        ignore_features=cfg.model.ignore_features)
     return model
 
 def train(train_loader, model, optimizer, device):

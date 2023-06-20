@@ -28,16 +28,30 @@ def create_dataset(cfg):
                                         random_init=False)
 
     root = 'data/EdgeColoring'
-    dataset = ColoredEdgesDataset(root, cfg.task, transform=transform)
+    dataset = ColoredEdgesDataset(root, abs(cfg.task), transform=transform)
     full_dataset = [x for x in dataset]
 
+    # If the task is negative, we evaluate whether the model can _identify_ instances
+    learn_to_distinguish = cfg.task < 0
+
     # Validate that we know our dataset
-    SAMPLES_PER_TASK = 4800
+    SAMPLES_PER_TASK = 2000
     assert len(full_dataset) == SAMPLES_PER_TASK
 
-    train_dataset = full_dataset[:int(4800 * 0.8)]
-    val_dataset = full_dataset[int(4800 * 0.8):int(4800 * 0.9)]
-    test_dataset = full_dataset[int(4800 * 0.9):SAMPLES_PER_TASK]
+    if learn_to_distinguish:
+        # Remove node and irrelevant edge features
+        # This keeps the model from distinguishing by overfitting node/edge attributes
+        for sample in full_dataset:
+            sample.x *= 0
+            sample.edge_attr *= sample.edge_rel_mask
+            sample.edge_attr += (1 - sample.edge_rel_mask) * (sample.edge_attr.max() + 1)
+        train_dataset = full_dataset
+        val_dataset = [copy.deepcopy(x) for x in train_dataset]
+        test_dataset = [copy.deepcopy(x) for x in train_dataset]
+    else:
+        train_dataset = full_dataset[:int(SAMPLES_PER_TASK * 0.8)]
+        val_dataset = full_dataset[int(SAMPLES_PER_TASK * 0.8):int(SAMPLES_PER_TASK * 0.9)]
+        test_dataset = full_dataset[int(SAMPLES_PER_TASK * 0.9):SAMPLES_PER_TASK]
     print('------------All--------------')
     calculate_stats(dataset)
     # exit(0)
@@ -69,7 +83,8 @@ def create_model(cfg):
                         eigel_embedding_dim=cfg.eigel.embedding_dim,
                         eigel_reuse_embeddings=cfg.eigel.reuse_embeddings,
                         eigel_layer_indices=cfg.eigel.layer_indices,
-                        use_gnn=cfg.use_gnn)
+                        use_gnn=cfg.use_gnn,
+                        ignore_features=cfg.model.ignore_features)
     return model
 
 def train(train_loader, model, optimizer, device):

@@ -197,9 +197,11 @@ class GNNAsKernel(nn.Module):
                         eigel_embedding_dim=128,
                         eigel_reuse_embeddings=False,
                         eigel_layer_indices=(0,),
-                        use_gnn=True):
+                        use_gnn=True,
+                        ignore_features="no"):
         super().__init__()
         self.use_gnn = use_gnn
+        self.ignore_features = ignore_features
         self.igel_edge_encodings = igel_edge_encodings
         # special case: PPGN
         nlayer_ppgn = nlayer_inner
@@ -334,6 +336,17 @@ class GNNAsKernel(nn.Module):
 
     def forward(self, data):
         x = data.x if len(data.x.shape) <= 2 else data.x.squeeze(-1)
+
+        # Disable node / edge features to evaluate downstream impact
+        if self.ignore_features in ["node", "both"]:
+            if self.igel_length is not None:
+                x[:, -self.igel_length:] *= 0
+            else:
+                x *= 0
+
+        if self.ignore_features in ["edge", "both"] and data.edge_attr is not None:
+            data.edge_attr *= 0
+
         if self.igel_length is not None and isinstance(self.input_encoder, DiscreteEncoder):
             x_embeddings = self.input_encoder(x[:, :-self.igel_length].int())
             x_igel = x[:, -self.igel_length:]

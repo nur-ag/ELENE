@@ -2,6 +2,7 @@ dataset: edge_colors
 model:
   num_layers: 3
   mini_layers: 0
+  mlp_layers: 2
   embs: (0, 1, 2)
   embs_combine_mode: 'concat'
   pool: add
@@ -10,5 +11,8 @@ subgraph:
   online: False
 train:
   lr: 0.001
-  epochs: 100
+  epochs: 250
   runs: 1
+  lr_patience: 40
+eigel:
+  reuse_embeddings: 'all'

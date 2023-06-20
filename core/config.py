@@ -71,7 +71,8 @@ def set_cfg(cfg):
     cfg.model.mlp_layers = 1
     # Whether combine with normal gnn, only used for random walk based subgraph which doesn't cover whole 1st hop
     cfg.model.use_normal_gnn = False
-
+    # Whether or not to ignore "node", "edge" or "both" features, or "no" if all features should be used
+    cfg.model.ignore_features = False
 
     # ------------------------------------------------------------------------ #
     # Subgraph patterns options

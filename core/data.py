@@ -124,7 +124,8 @@ class ColoredEdgesDataset(InMemoryDataset):
                 x=torch.Tensor(sample["x"]).long().reshape(-1, 1),
                 y=sample["y"],
                 edge_index=self.undirected_repeat(torch.Tensor(sample["edge_index"]).long()),
-                edge_attr=torch.Tensor(sample["edge_attr"]).long().repeat(2).reshape(-1, 1)
+                edge_attr=torch.Tensor(sample["edge_attr"]).long().repeat(2).reshape(-1, 1),
+                edge_rel_mask=torch.Tensor(sample["edge_rel_mask"]).long().repeat(2).reshape(-1, 1)
             ) for sample in flat_dataset]
         os.makedirs(f"{self.root}/processed/", exist_ok=True)
         torch.save(self.collate(data_as_tensors), self.processed_paths[0])
