@@ -24,7 +24,7 @@ def run(cfg, create_dataset, create_model, train, test, evaluator=None):
     train_dataset, val_dataset, test_dataset = create_dataset(cfg)
 
     # 1.b. add IGEL encodings, keeping the embedded vector length in the config
-    igel = AddIGELNodeFeatures(cfg.seed, cfg.igel.distance, -1, cfg.igel.use_relative_degrees, cfg.igel.use_edge_encodings)
+    igel = AddIGELNodeFeatures(cfg.seed, cfg.igel.distance, -1, cfg.igel.use_elene_degrees, cfg.igel.use_edge_encodings)
     train_dataset = igel(train_dataset)
     val_dataset = igel(val_dataset)
     test_dataset = igel(test_dataset)

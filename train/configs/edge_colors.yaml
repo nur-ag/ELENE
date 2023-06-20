@@ -14,5 +14,5 @@ train:
   epochs: 250
   runs: 1
   lr_patience: 40
-eigel:
+elene:
   reuse_embeddings: 'all'

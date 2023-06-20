@@ -113,7 +113,7 @@ class SubgraphsTransform(object):
         data.subgraph_node_hops = hop_indicator_dense[subgraphs_nodes[0], subgraphs_nodes[1]].int()
         data.subgraph_node_degrees = subgraph_degrees[subgraphs_nodes[0], subgraphs_nodes[1]].int()
 
-        # Add hops and degrees alongside the subgraph edges (EIGEL extension)
+        # Add hops and degrees alongside the subgraph edges (ELENE extension)
         src_degrees = subgraph_degrees[ego_root_indexes, edge_src_indexes]
         dst_degrees = subgraph_degrees[ego_root_indexes, edge_dst_indexes]
         data.subgraph_edge_hops = torch.cat([src_hops.reshape(-1, 1), dst_hops.reshape(-1, 1)], dim=-1).int()

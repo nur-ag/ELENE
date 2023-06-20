@@ -14,20 +14,20 @@ class AddIGELNodeFeatures:
         seed (int): random seed to pass to the unsupervised IGEL training job.
         distance (int): IGEL encoding distance. If set to less than 1, this preprocessor is a no-op.
         vector_length (int): length of the learned unsupervised IGEL embeddings. If set to a negative number, use IGEL structural encoding features (no training).
-        use_relative_degrees (boolean): whether or not to use 'relative' degrees from nodes to their neighbours closer to the ego-root.
+        use_elene_degrees (boolean): whether or not to use 'relative' degrees from nodes to their neighbours closer to the ego-root.
     '''
     def __init__(
             self, 
             seed=0, 
             distance=1, 
             vector_length=-1,
-            use_relative_degrees=False,
+            use_elene_degrees=False,
             use_edge_encodings=False):
         self.distance = distance
         self.seed = seed
         self.vector_length = vector_length
         self.use_encoding = vector_length < 0
-        self.use_relative_degrees = use_relative_degrees
+        self.use_elene_degrees = use_elene_degrees
         self.use_edge_encodings = use_edge_encodings
         self.model = None
 
@@ -91,7 +91,7 @@ class AddIGELNodeFeatures:
                                          self.distance, 
                                          self.seed,
                                          embedder_length,
-                                         self.use_relative_degrees,
+                                         self.use_elene_degrees,
                                          train_opts=TRAINING_OPTIONS)
         # We force the model in the CPU
         trained_model.device = torch.device('cpu')
@@ -107,5 +107,5 @@ class AddIGELNodeFeatures:
             input_identity = torch.eye(embedder_length).to(trained_model.device)
             trained_model.matrix = nn.Parameter(input_identity, requires_grad=False).to(trained_model.device)
             trained_model.output_size = embedder_length
-        print(f'Prepared IGEL model (encoding-only: {self.use_encoding}, relative: {self.use_relative_degrees}) with {embedder_length} features.')
+        print(f'Prepared IGEL model (encoding-only: {self.use_encoding}, relative: {self.use_elene_degrees}) with {embedder_length} features.')
         return trained_model

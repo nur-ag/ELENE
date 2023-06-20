@@ -2,7 +2,10 @@
 
 Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel). 
 
-We introduce three explicit ego-network attribute encodings --- IGEL, EIGEL and EIGEL-L. This code is sufficient to reproduce all the results reported in our paper. Using our configurations and scripts, you may also reproduce results from the original GNN-AK.
+We introduce two explicit, edge-aware ego-network (ELENE) attribute encodings --- SELENE and ELENE-L. 
+
+This code is sufficient to reproduce all the results reported in our paper. Using our configurations 
+and scripts, you may also reproduce results from the original GNN-AK.
 
 We provide an overview of our effort to keep [this research reproducible in REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
 
@@ -12,7 +15,7 @@ This section follows the installation guide for GNN-As-Kernel, as we do not intr
 
 ```
 # environment name
-export ENV=eigel
+export ENV=elene
 
 # create env 
 conda create --name $ENV python=3.10 -y
@@ -54,16 +57,16 @@ Note that we provide a `setup.sh` for convenience. However, we recommend that th
 
 ## Code structure
 
-We introduce IGEL, EIGEL and EIGEL-L in the GNN-AK codebase. See:
-* `core/eigel.py` — contains the implementation of the EIGEL-L representation.
-* `core/igel_utils.py` — contains the implementation of IGEL and EIGEL as a the relative degree encoding extension.
+We introduce ELENE-L and SELENE in the GNN-AK codebase. See:
+* `core/elene.py` — contains the implementation of the ELENE-L representation.
+* `core/igel_utils.py` — contains the implementation of IGEL and SELENE as the relative degree encoding extension.
   * For IGEL, the IGEL repository is required.
 
-The necessary sub-graph information required for EIGEL-L is introduced in `SubgraphsTransform` under `core/transform.py`.
+The necessary sub-graph information required for ELENE-L is introduced in `SubgraphsTransform` under `core/transform.py`.
 
 ## Hyperparameters
 
-See ``core/config.py`` for all the extended IGEL / EIGEL / EIGEL-L options.
+See ``core/config.py`` for all the extended IGEL / SELENE / ELENE-L options.
 
 ## Reproducibility
 
@@ -71,6 +74,6 @@ For reproducibility details, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md). We 
 See: `expressivityDatasets.sh`, `benchmarkDatasets.sh` and `proximityResults.sh`.
 
 To manage resources in our research cluster, we wrapped our execution scripts to detect the available GPU memory in our system.
-See `runEIGELExperiment.sh`, `runEIGELExperimentSmall.sh` and `runIGELExperiment.sh` for our hyper-parameter tuning approach.
+See `runELENEExperiment.sh`, `runELENEExperimentSmall.sh` and `runIGELExperiment.sh` for our hyper-parameter tuning approach.
 
-Note that in our scripts, EIGEL refers to EIGEL-L — that is, the learnable variant of explicit ego-network attributes.
+Note that in our scripts, ELENE refers to ELENE-L — that is, the learnable variant of explicit ego-network attributes.

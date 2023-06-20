@@ -5,29 +5,11 @@ This document describes how to reproduce the results for our paper "Simple yet P
 MP-GNNs from Explicit Ego-Network Attributes". We provide the following supplementary
 materials including code and instructions.
 
-## Project structure
-
-The supplementary materials are structured as follows:
-
-```
-# The supplementary materials with additional information on our work.
-./Simple-Powerful-EIGEL-SupplementaryMaterials.pdf
-
-# This document, also under ./Simple-Powerful-EIGEL-L/
-./REPRODUCIBILITY.md 
-
-# The IGEL repository, including relative degrees (required as an import for reproducibility)
-./IGEL/ 
-
-# The EIGEL repository, containing environment setup and reproducibility scripts.
-./Simple-Powerful-EIGEL-L/
-```
-
 ## Reproducibility
 
-All reproducibility work is performed under `./Simple-Powerful-EIGEL-L/`. To reproduce our results:
+All reproducibility work is performed under `./Simple-Powerful-ELENE-L/`. To reproduce our results:
 
-1. Set up the Conda environment. Follow the installation script `./Simple-Powerful-EIGEL-L/setup.sh`.
+1. Set up the Conda environment. Follow the installation script `./Simple-Powerful-ELENE-L/setup.sh`.
   * The script must be executed **line by line**.
   * You must ensure that the Conda environment is created and activated.
   * Upon installation, you should have Pytorch Geometric and all required dependencies installed.

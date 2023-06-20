@@ -115,30 +115,30 @@ def set_cfg(cfg):
     # Distance from the ego-network root, i.e. alpha
     cfg.igel.distance = 0
     # Whether to use relative degrees or just 'absolute' degrees in the encoding
-    cfg.igel.use_relative_degrees = False
+    cfg.igel.use_elene_degrees = False
     # Length of the IGEL vector
     cfg.igel.embedded_vector_length = None
     # Whether to add IGEL edge functions as the product of IGEL encodings across nodes in the edge
     cfg.igel.use_edge_encodings = False
 
     # ------------------------------------------------------------------------ #
-    # EIGEL options
+    # ELENE options
     # ------------------------------------------------------------------------ #
-    cfg.eigel = CN()
+    cfg.elene = CN()
     # Maximum degree that can be encoded
-    cfg.eigel.max_degree = 0
+    cfg.elene.max_degree = 0
     # Maximum distance that can be encoded
-    cfg.eigel.max_distance = 0
+    cfg.elene.max_distance = 0
     # Whether to use relative (partitioned) degrees depending on the distance to the ego-root
-    cfg.eigel.relative_degrees = True
+    cfg.elene.relative_degrees = True
     # Whether to use "disjoint" or "joint" embeddings
-    cfg.eigel.model_type = "joint"
+    cfg.elene.model_type = "joint"
     # Embedding size
-    cfg.eigel.embedding_dim = 128
+    cfg.elene.embedding_dim = 128
     # Whether to reuse embeddings, from either "no", "degree_only", or "all"
-    cfg.eigel.reuse_embeddings = "no"
-    # Tuple containing the layer indices where EIGEL embeddings should be added
-    cfg.eigel.layer_indices = (0,)
+    cfg.elene.reuse_embeddings = "no"
+    # Tuple containing the layer indices where ELENE embeddings should be added
+    cfg.elene.layer_indices = (0,)
 
     # ------------------------------------------------------------------------ #
     # GNN options: whether to use GNNs or not

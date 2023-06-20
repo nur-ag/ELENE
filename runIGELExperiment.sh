@@ -55,7 +55,7 @@ do
         MINI_LAYER_CFG=""
       fi
 
-      JOB_COMMAND="python -m train.${PROBLEM} model.num_layers ${GNN_AK_LAYERS} model.gnn_type ${GNN_TYPE} igel.distance $IGEL_DISTANCE igel.use_relative_degrees $REL_DEGREE $MINI_LAYER_CFG"
+      JOB_COMMAND="python -m train.${PROBLEM} model.num_layers ${GNN_AK_LAYERS} model.gnn_type ${GNN_TYPE} igel.distance $IGEL_DISTANCE igel.use_elene_degrees $REL_DEGREE $MINI_LAYER_CFG"
       ./runCommandOnGPUMemThreshold.sh "${JOB_COMMAND} ${EXTRA_PARAMS}" ${MAX_MEMORY}
 
       # Sleep after submitting the job to wait until memory gets allocated

@@ -32,22 +32,22 @@ DATASETS_BY_NAME = {
 
 # Analysis constants
 METRIC_STATS = ["mean", "std", "count"]
-EXPERIMENT_KEY = ["dataset", "T", "GNN", "Hops", "Emb", "Mini", "IgA", "IgR", "IgE", "EIGEL"]
-ORDERING_KEY = ["dataset", "T", "GNN", "Hops", "Emb", "IsGNNAK", "IsIGEL", "IsEIGEL", "IsEIGELL", "EIGELLearnType", "FullModel", "Model"]
+EXPERIMENT_KEY = ["dataset", "T", "GNN", "Hops", "Emb", "Mini", "IgA", "IgR", "IgE", "ELENE"]
+ORDERING_KEY = ["dataset", "T", "GNN", "Hops", "Emb", "IsGNNAK", "IsIGEL", "IsELENE", "IsELENEL", "ELENELearnType", "FullModel", "Model"]
 REPORTING_KEY = ["dataset", "T"]
 
 # Parse models in simple / full formats
 def parse_model(row, is_full=False):
     model = "GIN-AK" if row.IsGNNAK else "GIN"
-    if row.IsEIGEL:
+    if row.IsELENE:
         format = f" (k = {row.IgA})" if is_full else ""
-        return f"{model}+EIGEL{format}"
+        return f"{model}+ELENE{format}"
     elif row.IsIGEL:
         format = f" (k = {row.IgA})" if is_full else ""
         return f"{model}+IGEL{format}"
-    elif row.IsEIGELL:
-        format = f" ({row.EIGELLearnType})" if is_full else ""
-        return f"{model}+EIGEL-L{format}"
+    elif row.IsELENEL:
+        format = f" ({row.ELENELearnType})" if is_full else ""
+        return f"{model}+ELENE-L{format}"
     return model
 
 DATASET_FORMATS = {
@@ -112,9 +112,9 @@ def best_results_df(metric_df, ordering_key=ORDERING_KEY):
     test_results_df = metric_df.copy()
     test_results_df["IsGNNAK"] = test_results_df.Mini.astype(int) > 0
     test_results_df["IsIGEL"] = test_results_df.IgA.astype(int) > 0
-    test_results_df["IsEIGEL"] = test_results_df.IsIGEL & (test_results_df.IgR == "True")
-    test_results_df["EIGELLearnType"] = ["" if eigel.startswith("0-0-") else eigel.split("-")[2] for eigel in test_results_df.EIGEL]
-    test_results_df["IsEIGELL"] = test_results_df.EIGELLearnType != ""
+    test_results_df["IsELENE"] = test_results_df.IsIGEL & (test_results_df.IgR == "True")
+    test_results_df["ELENELearnType"] = ["" if elene.startswith("0-0-") else elene.split("-")[2] for elene in test_results_df.ELENE]
+    test_results_df["IsELENEL"] = test_results_df.ELENELearnType != ""
     test_results_df["FullModel"] = [parse_model(row, True) for i, row in test_results_df.iterrows()]
     test_results_df["Model"] = [parse_model(row, False) for i, row in test_results_df.iterrows()]
     best_mean_df = test_results_df.groupby(ordering_key).agg(mean=("mean", "max")).reset_index()

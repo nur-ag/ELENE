@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter # tensorboard
 import logging, os, sys, shutil
 import datetime
 
-INCLUDE_EIGEL = True
+INCLUDE_ELENE = True
 
 def config_logger(cfg, OUT_PATH="results/", time=False):
     # time option is used for debugging different model architecture. 
@@ -19,14 +19,14 @@ def config_logger(cfg, OUT_PATH="results/", time=False):
                     f'H[{cfg.model.hidden_size}] HopE[{cfg.model.hops_dim}] Pl[{cfg.model.pool}] VN[{cfg.model.virtual_node}] WOr[{cfg.model.use_normal_gnn}] '\
                     f'Hops[{cfg.subgraph.hops}] WkL[{cfg.subgraph.walk_length}] p[{cfg.subgraph.walk_p}] q[{cfg.subgraph.walk_q}] '\
                     f'Smp[{cfg.sampling.mode}] MR[{cfg.sampling.redundancy}] '\
-                    f'IgA[{cfg.igel.distance}] IgR[{cfg.igel.use_relative_degrees}] IgE[{cfg.igel.use_edge_encodings}] '\
+                    f'IgA[{cfg.igel.distance}] IgR[{cfg.igel.use_elene_degrees}] IgE[{cfg.igel.use_edge_encodings}] '\
                     f'Reg[{cfg.train.dropout}-{cfg.train.wd}] Seed[{cfg.seed}] GPU[{cfg.device}]'
-    if INCLUDE_EIGEL:
-        eigel_rel = "Y" if cfg.eigel.relative_degrees else "N"
-        eigel_model_type = "".join([token[0].upper() for token in cfg.eigel.model_type.split("-")])
+    if INCLUDE_ELENE:
+        elene_rel = "Y" if cfg.elene.relative_degrees else "N"
+        elene_model_type = "".join([token[0].upper() for token in cfg.elene.model_type.split("-")])
         use_gnn = "Y" if cfg.use_gnn else "N"
         config_string = f'{config_string} '\
-                        f'EIGEL[{cfg.eigel.max_degree}-{cfg.eigel.max_distance}-{eigel_rel}{eigel_model_type}-{cfg.eigel.embedding_dim}-{cfg.eigel.reuse_embeddings}-{cfg.eigel.layer_indices}-{use_gnn}]'\
+                        f'ELENE[{cfg.elene.max_degree}-{cfg.elene.max_distance}-{elene_rel}{elene_model_type}-{cfg.elene.embedding_dim}-{cfg.elene.reuse_embeddings}-{cfg.elene.layer_indices}-{use_gnn}]'\
 
     # setup tensorboard writer
     writer_folder = os.path.join(OUT_PATH, cfg.version, data_name, config_string)

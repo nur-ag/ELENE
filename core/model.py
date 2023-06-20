@@ -5,7 +5,7 @@ from torch_scatter import scatter
 import core.model_utils.pyg_gnn_wrapper as gnn_wrapper 
 from core.model_utils.elements import MLP, DiscreteEncoder, Identity, VNUpdate
 from core.model_utils.ppgn import PPGN
-from core.eigel import EIGELMessagePasser, EIGELEmbedder
+from core.elene import ELENEMessagePasser, ELENEEmbedder
 from torch_geometric.nn.inits import reset
 
 BN = True
@@ -190,13 +190,13 @@ class GNNAsKernel(nn.Module):
                         online=True,
                         igel_length=None,
                         igel_edge_encodings=False,
-                        eigel_max_degree=50,
-                        eigel_max_distance=3,
-                        eigel_relative_degrees=True,
-                        eigel_model_type="disjoint",
-                        eigel_embedding_dim=128,
-                        eigel_reuse_embeddings=False,
-                        eigel_layer_indices=(0,),
+                        elene_max_degree=50,
+                        elene_max_distance=3,
+                        elene_relative_degrees=True,
+                        elene_model_type="disjoint",
+                        elene_embedding_dim=128,
+                        elene_reuse_embeddings=False,
+                        elene_layer_indices=(0,),
                         use_gnn=True,
                         ignore_features="no"):
         super().__init__()
@@ -269,59 +269,59 @@ class GNNAsKernel(nn.Module):
         self.pooling = pooling
         self.igel_length = igel_length
 
-        # EIGEL extensions
-        self.eigels = []
+        # ELENE extensions
+        self.elenes = []
         for i in range(nlayer_outer):
-            if (not eigel_max_degree and not eigel_max_distance) or (i not in eigel_layer_indices):
-                self.eigels.append(None)
+            if (not elene_max_degree and not elene_max_distance) or (i not in elene_layer_indices):
+                self.elenes.append(None)
                 continue
 
-            if eigel_model_type.split("-")[0] in ("joint", "disjoint"):
+            if elene_model_type.split("-")[0] in ("joint", "disjoint"):
                 # Figure out if we should reuse any embedding matrix or not
                 given_embedders = None
-                if i > 0 and eigel_reuse_embeddings not in (False, "no"):
+                if i > 0 and elene_reuse_embeddings not in (False, "no"):
                     if joint_embeddings:
                         given_embedders = (
-                            self.eigels[0].eigel_embedder.edge_degree_delta_embedders,
-                            self.eigels[0].eigel_embedder.node_degree_distance_embedders
+                            self.elenes[0].elene_embedder.edge_degree_delta_embedders,
+                            self.elenes[0].elene_embedder.node_degree_distance_embedders
                         )
                     else:
-                        if eigel_reuse_embeddings == "degree_only":
+                        if elene_reuse_embeddings == "degree_only":
                             given_embedders = (
-                                self.eigels[0].eigel_embedder.degree_embedders,
-                                nn.Embedding(3 * (eigel_max_distance + 1), 3 * (eigel_max_distance + 1)),
-                                nn.Embedding(eigel_max_distance + 1, eigel_max_distance + 1)
+                                self.elenes[0].elene_embedder.degree_embedders,
+                                nn.Embedding(3 * (elene_max_distance + 1), 3 * (elene_max_distance + 1)),
+                                nn.Embedding(elene_max_distance + 1, elene_max_distance + 1)
                             )
                         else:
                             given_embedders = (
-                                self.eigels[0].eigel_embedder.degree_embedders,
-                                self.eigels[0].eigel_embedder.delta_embedder,
-                                self.eigels[0].eigel_embedder.distance_embedder
+                                self.elenes[0].elene_embedder.degree_embedders,
+                                self.elenes[0].elene_embedder.delta_embedder,
+                                self.elenes[0].elene_embedder.distance_embedder
                             )
 
                 # Define embedder and layer
-                joint_embeddings = eigel_model_type == "joint"
-                node_only = eigel_model_type.endswith("-nodeonly")
-                eigel_embedder = EIGELEmbedder(
-                    max_degree=eigel_max_degree,
-                    max_distance=eigel_max_distance,
-                    use_relative_degrees=eigel_relative_degrees,
+                joint_embeddings = elene_model_type == "joint"
+                node_only = elene_model_type.endswith("-nodeonly")
+                elene_embedder = ELENEEmbedder(
+                    max_degree=elene_max_degree,
+                    max_distance=elene_max_distance,
+                    use_elene_degrees=elene_relative_degrees,
                     joint_embeddings=joint_embeddings,
-                    embedding_dim=eigel_embedding_dim,
+                    embedding_dim=elene_embedding_dim,
                     given_embedders=given_embedders,
                     node_only=node_only,
                 )
-                eigel = EIGELMessagePasser(
-                    nhid, edge_emd_dim, mlp_layers=1, max_degree=eigel_max_degree, max_distance=eigel_max_distance,
-                    use_relative_degrees=eigel_relative_degrees, joint_embeddings=joint_embeddings,
-                    eigel_embedder=eigel_embedder
+                elene = ELENEMessagePasser(
+                    nhid, edge_emd_dim, mlp_layers=1, max_degree=elene_max_degree, max_distance=elene_max_distance,
+                    use_elene_degrees=elene_relative_degrees, joint_embeddings=joint_embeddings,
+                    elene_embedder=elene_embedder
                 )
             else:
-                raise ValueError("Unknown EIGEL model type.")
-            eigel.reset_parameters()
-            self.eigels.append(eigel)
-        if any([module is not None for module in self.eigels]):
-            self.eigels = nn.ModuleList(self.eigels)
+                raise ValueError("Unknown ELENE model type.")
+            elene.reset_parameters()
+            self.elenes.append(elene)
+        if any([module is not None for module in self.elenes]):
+            self.elenes = nn.ModuleList(self.elenes)
 
     def reset_parameters(self):
         self.input_encoder.reset_parameters()
@@ -361,8 +361,8 @@ class GNNAsKernel(nn.Module):
 
         previous_x = x # for residual connection
         virtual_node = None
-        for i, (edge_encoder, subgraph_layer, normal_gnn, norm, vn_aggregator, eigel) in enumerate(zip(self.edge_encoders, 
-                                        self.subgraph_layers, self.traditional_gnns, self.norms, self.vn_aggregators, self.eigels)):
+        for i, (edge_encoder, subgraph_layer, normal_gnn, norm, vn_aggregator, elene) in enumerate(zip(self.edge_encoders, 
+                                        self.subgraph_layers, self.traditional_gnns, self.norms, self.vn_aggregators, self.elenes)):
             # if ori_edge_attr is not None: # Encode edge attr for each layer
             if self.igel_length is not None and self.igel_edge_encodings and ori_edge_has_attr:
                 if isinstance(self.input_encoder, DiscreteEncoder):
@@ -376,11 +376,11 @@ class GNNAsKernel(nn.Module):
             raw_edge_attr = data.edge_attr
 
             data.x = x
-            if eigel is not None:
-                eigel_x, eigel_edge_attr = eigel(data)
-                data.x = eigel_x
-                if eigel_edge_attr is not None:
-                    data.edge_attr = eigel_edge_attr
+            if elene is not None:
+                elene_x, elene_edge_attr = elene(data)
+                data.x = elene_x
+                if elene_edge_attr is not None:
+                    data.edge_attr = elene_edge_attr
                 x = data.x
 
             if self.use_gnn:

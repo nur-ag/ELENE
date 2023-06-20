@@ -9,14 +9,14 @@ MAX_MEMORY=${3:-30000}
 # MAX_DISTANCES is a list of encoding distances that we will check through
 MAX_DISTANCES=${4:-1 2}
 
-# MODEL_TYPES is the set of EIGEL model types that we check
+# MODEL_TYPES is the set of ELENE model types that we check
 MODEL_TYPES=${5:-joint disjoint}
 
 # MINI_SETUPS are the mini-layer configurations for GNN-AK, where -1 just uses the default
 MINI_SETUPS=${6:-0 -1}
 
 # EXTRA_PARAMS is a list of extra parameters to append to all jobs
-EXTRA_PARAMS=${7:-eigel.embedding_dim 32}
+EXTRA_PARAMS=${7:-elene.embedding_dim 32}
 
 # DELAY_BETWEEN_JOB_RUNS is the time in seconds to wait until a successful submission (where the job appears in nvidia-smi)
 DELAY_BETWEEN_JOB_RUNS=${8:-60}
@@ -60,23 +60,17 @@ PROBLEM_DEGREE["qm9"]="4"
 PROBLEM_KEY=$(echo $PROBLEM | cut -d" " -f1)
 MAX_DEGREE=${PROBLEM_DEGREE["$PROBLEM_KEY"]}
 GNN_AK_LAYERS=${PROBLEM_LAYERS["$PROBLEM_KEY"]}
-HALF_LAYERS=$(($GNN_AK_LAYERS / 2))
 
-# Get the tuples for EIGEL on the first, half or all layes
-EIGEL_FIRST="(0,)"
-EIGEL_HALF=`seq 0 $(( $HALF_LAYERS - 1 )) | tr '\n' ',' | sed 's/\(.*\),$/(\1)/g'`;
-EIGEL_FULL=`seq 0 $(( $GNN_AK_LAYERS - 1 )) | tr '\n' ',' | sed 's/\(.*\),$/(\1)/g'`;
+# Get the tuples for ELENE on the first, half or all layes
+ELENE_FIRST="(0,)"
+ELENE_FULL=`seq 0 $(( $GNN_AK_LAYERS - 1 )) | tr '\n' ',' | sed 's/\(.*\),$/(\1)/g'`;
 
 # Run all the jobs as required
 for MODEL_TYPE in $MODEL_TYPES
 do
   for MAX_DISTANCE in $MAX_DISTANCES
   do
-    # Only use half-layers if there is actually a half!
-    LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_HALF $EIGEL_FULL"
-    if [ $GNN_AK_LAYERS -le 3 ]; then
-        LAYER_LAYOUTS="$EIGEL_FIRST $EIGEL_FULL"
-    fi
+    LAYER_LAYOUTS="$ELENE_FIRST $ELENE_FULL"
 
     for LAYER_LAYOUT in $LAYER_LAYOUTS
     do
@@ -87,36 +81,16 @@ do
           MINI_LAYER_CFG=""
         fi
 
-        EIGEL_USE_GNN="True"
-        if [ $MINI_LAYERS -lt 0 ]; then
-          EIGEL_USE_GNN="True False"
+        DEGREE_ARGS="elene.max_degree ${MAX_DEGREE}"
+        if [ $(echo "$EXTRA_ARGS" | grep "elene.max_degree" | wc -l) -gt 0 ]; then
+          DEGREE_ARGS=""
         fi
+        JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} elene.model_type ${MODEL_TYPE} elene.max_distance ${MAX_DISTANCE} ${DEGREE_ARGS} elene.layer_indices ${LAYER_LAYOUT} ${MINI_LAYER_CFG}"
+        ./runCommandOnGPUMemThreshold.sh "${JOB_COMMAND} ${EXTRA_PARAMS}" ${MAX_MEMORY}
 
-        # Only use GNN _when actually needed, otherwise it's a no-op
-        for USE_GNN in $EIGEL_USE_GNN
-        do
-          LEAVE_GNN_BRANCH="True"
-          GNN_MINI_LAYER_CFG="$MINI_LAYER_CFG"
-          if [ "$USE_GNN" == "False" ] && [ "$LAYER_LAYOUT" == "$EIGEL_FULL" ]; then
-            GNN_MINI_LAYER_CFG="use_gnn False $MINI_LAYER_CFG"
-            LEAVE_GNN_BRANCH="False"
-          fi
-
-          DEGREE_ARGS="eigel.max_degree ${MAX_DEGREE}"
-          if [ $(echo "$EXTRA_ARGS" | grep "eigel.max_degree" | wc -l) -gt 0 ]; then
-            DEGREE_ARGS=""
-          fi
-          JOB_COMMAND="python -m train.${PROBLEM} model.gnn_type ${GNN_TYPE} eigel.model_type ${MODEL_TYPE} eigel.max_distance ${MAX_DISTANCE} ${DEGREE_ARGS} eigel.layer_indices ${LAYER_LAYOUT} ${GNN_MINI_LAYER_CFG}"
-          ./runCommandOnGPUMemThreshold.sh "${JOB_COMMAND} ${EXTRA_PARAMS}" ${MAX_MEMORY}
-
-          # Sleep after submitting the job to wait until memory gets allocated
-          echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping for ${DELAY_BETWEEN_JOB_RUNS} seconds after submission."
-          sleep ${DELAY_BETWEEN_JOB_RUNS}
-          # Only run the no-GNN once if we are not in the full EIGEL layout
-          if [ "$LEAVE_GNN_BRANCH" == "True" ]; then
-            break
-          fi
-        done
+        # Sleep after submitting the job to wait until memory gets allocated
+        echo "[$(date '+%Y-%m-%d %H:%M')] Sleeping for ${DELAY_BETWEEN_JOB_RUNS} seconds after submission."
+        sleep ${DELAY_BETWEEN_JOB_RUNS}
       done
     done
   done

@@ -1,5 +1,5 @@
 # environment name
-export ENV=eigel
+export ENV=elene
 
 # create env 
 conda create --name $ENV python=3.10 -y
