@@ -23,8 +23,11 @@ export ENV=elene
 conda create --name $ENV python=3.10 -y
 conda activate $ENV
 
+# install cuda according to your system --- or ignore for CPU-only
+conda install -c "nvidia/label/cuda-11.3.1" cuda-toolkit
+
 # install pytorch 
-conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch -y
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 -c pytorch -y
 
 # install pyg
 conda install pyg -c pyg -y
@@ -56,6 +59,7 @@ pip install networkx dill
 conda install pytorch-scatter -c pyg -y
 conda install pytorch-sparse -c pyg -y
 conda install pytorch-cluster -c pyg -y
+
 ```
 
 Note that we provide a `setup.sh` for convenience. However, we recommend that this script be executed manually line by line to ensure that each installation step executes correctly.
