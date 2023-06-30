@@ -2,12 +2,14 @@
 
 Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel) for evaluation consistency. 
 
-We introduce two explicit, edge-level ego-network (ELENE) encodings --- ELENE and ELENE-L. 
+We introduce ELENE (edge-level ego-network encodings) with the two variants presented in the paper --- ELENE and ELENE-L. 
 
 This code is sufficient to reproduce all the results reported in our paper. Using our configurations 
 and scripts, you may also reproduce results from the original GNN-AK.
 
 We provide an overview of our effort to keep [this research reproducible in REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
+
+For the reproducibility checklist, consult [our annotated PDF](./ELENE-ReproducibilityChecklist-v2.0.pdf)
 
 ## Setup
 
@@ -91,4 +93,4 @@ You can collect results as reported in the paper with the `process_results.py`, 
 To manage resources in our research cluster, we wrapped our execution scripts to detect the available GPU memory in our system.
 See `runELENELExperiment.sh`, `runELENELExperimentSmall.sh` and `runSparseELENEExperiment.sh` for our hyper-parameter tuning approach.
 
-Note that in our scripts, ELENE parameters may refer to ELENE-L — that is, the learnable variant of explicit ego-network attributes.
+Note that in some of our scripts, ELENE parameters may refer to ELENE-L for brevity — that is, they refer to the learnable variant of ELENE.
