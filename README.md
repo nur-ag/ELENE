@@ -28,7 +28,7 @@ conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit
 conda install pyg -c pyg -y
 
 # install ogb 
-pip install ogb -y
+pip install ogb
 
 # install rdkit
 conda install -c conda-forge rdkit -y
@@ -75,6 +75,18 @@ See ``core/config.py`` for all the extended ELENE / ELENE-L options.
 
 For reproducibility details, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md). We provide several bash scripts to reproduce the results of each benchmark. The results reported in our paper are computed using them.
 See: `expressivityDatasets.sh`, `benchmarkDatasets.sh` and `proximityResults.sh`.
+
+After installation, one quick check is to reproduce the results on the pair of Shrikhande and 4x4 Rook graphs, which can be validated using:
+
+```bash
+# GINE without ELENE --- Should _not_ be able to distinguish both graphs (accuracy: 0.5 for all epochs)
+python3 -m train.pair3wl model.gnn_type GINEConv model.mini_layers 0 igel.distance 0 elene.max_distance 0 elene.model_type joint elene.max_degree 0 elene.embedding_dim 32 elene.layer_indices \(0,\) model.num_layers 2 model.hidden_size 32
+
+# GINE with ELENE (k = 1, rho = 6 (max. degree)) --- Should be able to distinguish both graphs (best acc: 0 or 1 in some epoch, meaning we identify 2 classes)
+python3 -m train.pair3wl model.gnn_type GINEConv model.mini_layers 0 igel.distance 0 elene.max_distance 1 elene.model_type joint elene.max_degree 6 elene.embedding_dim 32 elene.layer_indices \(0,\) model.num_layers 2 model.hidden_size 32
+```
+
+You can collect results as reported in the paper with the `process_results.py`, which parses Tensorboard logs.
 
 To manage resources in our research cluster, we wrapped our execution scripts to detect the available GPU memory in our system.
 See `runELENELExperiment.sh`, `runELENELExperimentSmall.sh` and `runSparseELENEExperiment.sh` for our hyper-parameter tuning approach.

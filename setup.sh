@@ -5,14 +5,17 @@ export ENV=elene
 conda create --name $ENV python=3.10 -y
 conda activate $ENV
 
+# install cuda according to your system --- or ignore for CPU
+conda install -c "nvidia/label/cuda-11.3.1" cuda-toolkit
+
 # install pytorch 
-conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch -y
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 -c pytorch -y
 
 # install pyg
 conda install pyg -c pyg -y
 
 # install ogb 
-pip install ogb -y
+pip install ogb
 
 # install rdkit
 conda install -c conda-forge rdkit -y
