@@ -9,11 +9,11 @@
 # Smaller datasets have lower memory bounds
 for DATASET in MUTAG PTC PROTEINS NCI1; do
   echo "[$(date '+%Y-%m-%d %H:%M')] Running $DATASET with ELENE."
-  ./runELENEExperimentSmall.sh GINEConv tu_datasets_gin_split 32000 "1 2 3" "joint-nodeonly" "0" "dataset $DATASET elene.embedding_dim 32 subgraph.hops 3"
+  ./runELENELExperimentSmall.sh GINEConv tu_datasets_gin_split 32000 "1 2 3" "joint-nodeonly" "0" "dataset $DATASET elene.embedding_dim 32 subgraph.hops 3"
 done
 
 # Find baselines for all datasets
 for DATASET in MUTAG PTC PROTEINS NCI1; do
   echo "[$(date '+%Y-%m-%d %H:%M')] Running $DATASET with IGEL."
-  ./runIGELExperiment.sh GINEConv tu_datasets_gin_split 20000 "0 1 2" "0" "dataset $DATASET"
+  ./runSparseELENEExperiment.sh GINEConv tu_datasets_gin_split 20000 "0 1 2" "0" "dataset $DATASET"
 done

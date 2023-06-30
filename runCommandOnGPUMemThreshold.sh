@@ -6,6 +6,13 @@ MAX_MEMORY=${2:-30000}
 # SLEEP_TIME is the time to sleep between memory checks
 SLEEP_TIME=${3:-60}
 
+# DEBUG is a flag that we hardcode
+DEBUG=0
+if [ $DEBUG -ge 1 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M')] Executing: ${JOB_COMMAND}"
+  exit
+fi
+
 # Check memory and wait until ready
 CURR_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f1 | sed 's/MiB//g' | sed 's/ //g'`
 TOTAL_MEMORY=`nvidia-smi | grep -E '([0-9]+MiB) */ *([0-9]+MiB)' | sed 's/.* \([0-9]\+MiB *\/ *\+[0-9]\+MiB\).*/\1/g' | cut -d'/' -f2 | sed 's/MiB//g' | sed 's/ //g'`

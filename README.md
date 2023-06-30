@@ -1,8 +1,8 @@
-# Simple yet Powerful MP-GNNs from Explicit Ego-Network Attributes
+# ELENE: Exploring MP-GNN Expressivity via Edge-Level Ego-Network Encodings
 
-Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel). 
+Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel) for evaluation consistency. 
 
-We introduce two explicit, edge-aware ego-network (ELENE) attribute encodings --- SELENE and ELENE-L. 
+We introduce two explicit, edge-level ego-network (ELENE) encodings --- ELENE and ELENE-L. 
 
 This code is sufficient to reproduce all the results reported in our paper. Using our configurations 
 and scripts, you may also reproduce results from the original GNN-AK.
@@ -41,6 +41,9 @@ pip install matplotlib
 # install jupyter and ipython 
 conda install -c conda-forge nb_conda -y
 
+# clone the IGEL dependency
+git clone git@github.com:nur-ag/IGEL.git ../IGEL
+
 # install igraph for IGEL and missing networkx
 conda install -c conda-forge python-igraph -y
 pip install networkx dill
@@ -57,16 +60,16 @@ Note that we provide a `setup.sh` for convenience. However, we recommend that th
 
 ## Code structure
 
-We introduce ELENE-L and SELENE in the GNN-AK codebase. See:
+We introduce ELENE-L and ELENE in the GNN-AK codebase. See:
 * `core/elene.py` — contains the implementation of the ELENE-L representation.
-* `core/igel_utils.py` — contains the implementation of IGEL and SELENE as the relative degree encoding extension.
-  * For IGEL, the IGEL repository is required.
+* `core/igel_utils.py` — contains the implementation of IGEL and ELENE as the relative degree encoding extension.
+  * For IGEL, the IGEL repository is required and pulled by the setup script.
 
 The necessary sub-graph information required for ELENE-L is introduced in `SubgraphsTransform` under `core/transform.py`.
 
 ## Hyperparameters
 
-See ``core/config.py`` for all the extended IGEL / SELENE / ELENE-L options.
+See ``core/config.py`` for all the extended ELENE / ELENE-L options.
 
 ## Reproducibility
 
@@ -74,6 +77,6 @@ For reproducibility details, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md). We 
 See: `expressivityDatasets.sh`, `benchmarkDatasets.sh` and `proximityResults.sh`.
 
 To manage resources in our research cluster, we wrapped our execution scripts to detect the available GPU memory in our system.
-See `runELENEExperiment.sh`, `runELENEExperimentSmall.sh` and `runIGELExperiment.sh` for our hyper-parameter tuning approach.
+See `runELENELExperiment.sh`, `runELENELExperimentSmall.sh` and `runSparseELENEExperiment.sh` for our hyper-parameter tuning approach.
 
-Note that in our scripts, ELENE refers to ELENE-L — that is, the learnable variant of explicit ego-network attributes.
+Note that in our scripts, ELENE parameters may refer to ELENE-L — that is, the learnable variant of explicit ego-network attributes.
