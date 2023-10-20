@@ -1,0 +1,14 @@
+dataset: kregular
+model:
+  num_layers: 1
+  mini_layers: 0
+  embs: (0, 1, 2)
+  embs_combine_mode: 'concat'
+  pool: add
+subgraph:
+  hops: 3
+  online: True
+train:
+  lr: 0.1
+  epochs: 10
+  runs: 3

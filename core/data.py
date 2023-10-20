@@ -18,6 +18,27 @@ from core.data_utils.sbm_cliques import CliqueSBM
 from core.data_utils.tudataset_gin_split import TUDatasetGINSplit
 
 
+class RandomKRegularDataset(InMemoryDataset):
+    """Implements an in-memory K-Regular n-node dataset with two graphs to overfit and distinguish.
+
+    This is helpful to study scalability on ego-network depths.
+    """
+    @property
+    def processed_file_names(self):
+        return 'data.pt'
+
+    def __init__(self, root, n, k, h, seed=None, transform=None):
+        root = osp.join("n={n}_k={k}_h={h}")
+        super().__init__(root, transform)
+        dataset = [nx.random_regular_graph(n=n, d=k, seed=seed) for i in range(2)]
+        data_list = []
+        for i, datum in enumerate(dataset):
+            x = torch.ones(datum.number_of_nodes(), 1)
+            edge_index = to_undirected(torch.tensor(list(datum.edges())).transpose(1, 0))
+            data_list.append(Data(edge_index=edge_index, x=x, y=i))
+        self.data, self.slices = self.collate(data_list)
+
+
 class QM9SplitsDataset(InMemoryDataset):
     """A PyTorch Geometric dataset with the splits from GNN-FiLM,
     following the code from SPNNs.
