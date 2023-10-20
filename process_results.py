@@ -1,4 +1,5 @@
 import glob
+import numpy as np
 import pandas as pd
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
@@ -83,6 +84,7 @@ for log_dir in all_experiment_log_dirs:
             "metric": metric,
             "num_steps": num_steps,
             "datapoints": datapoints,
+            "mean_datapoint": np.mean(datapoints),
             "last_datapoint": last_datapoint,
             **experiment_params
         }
@@ -101,10 +103,11 @@ test_df["last_datapoint"] = [
 ]
 
 mem_df = df[df.metric == "memory"]
-def aggregate_data(metric_df, experiment_key=EXPERIMENT_KEY, metric_stats=METRIC_STATS):
+time_df = df[df.metric == "seconds"]
+def aggregate_data(metric_df, experiment_key=EXPERIMENT_KEY, metric_stats=METRIC_STATS, target_key="last_datapoint"):
     results_df = metric_df.groupby(
         experiment_key
-    ).agg({"last_datapoint": metric_stats}).reset_index()
+    ).agg({target_key: metric_stats}).reset_index()
     results_df.columns = [top if not bottom else bottom for (top, bottom) in results_df.columns]
     return results_df
 
@@ -126,10 +129,14 @@ best_test_df = best_results_df(aggregate_data(test_df))
 best_test_df.columns = [col if col not in METRIC_STATS else f"btest_{col}" for col in best_test_df.columns]
 match_mem_df = aggregate_data(mem_df)
 match_mem_df.columns = [col if col not in METRIC_STATS else f"mem_{col}" for col in match_mem_df.columns]
-match_mem_df = match_mem_df[EXPERIMENT_KEY + [col for col in match_mem_df.columns if col.startswith("mem_")]]
+match_mem_df = match_mem_df[EXPERIMENT_KEY + [col for col in match_mem_df.columns if col.startswith("mem_")]].round(2)
+time_agg_df = aggregate_data(time_df, target_key="mean_datapoint")
+time_agg_df.columns = [col if col not in METRIC_STATS else f"seconds_{col}" for col in time_agg_df.columns]
+time_agg_df = time_agg_df[EXPERIMENT_KEY + [col for col in time_agg_df.columns if col.startswith("seconds_")]].round(2)
 
 # Join the best results with their memory budget and organize the results for visualization
 best_df = pd.merge(best_test_df, match_mem_df, on=EXPERIMENT_KEY)
+best_df = pd.merge(best_df, time_agg_df, on=EXPERIMENT_KEY)
 best_col_order = [col for i, col in sorted(enumerate(best_df.columns), key=lambda x: (x[1].split("_")[-1] in METRIC_STATS, x[0]))]
 full_best_df = best_df[best_col_order].copy()
 full_best_df.to_csv(f"tables/results_all.csv")
@@ -159,4 +166,5 @@ for benchmark, datasets in DATASETS_BY_NAME.items():
 
     # Dump the results to separate files
     best_df.to_csv(f"tables/results_{benchmark}.csv")
+
 
