@@ -19,7 +19,7 @@ from core.data_utils.tudataset_gin_split import TUDatasetGINSplit
 
 
 class RandomKRegularDataset(InMemoryDataset):
-    """Implements an in-memory K-Regular n-node dataset with two graphs to overfit and distinguish.
+    """Implements an in-memory K-Regular n-node dataset with graphs to overfit.
 
     This is helpful to study scalability on ego-network depths.
     """
@@ -28,14 +28,15 @@ class RandomKRegularDataset(InMemoryDataset):
         return 'data.pt'
 
     def __init__(self, root, n, k, h, seed=None, transform=None):
+        NUM_GRAPHS = 1
         root = osp.join("n={n}_k={k}_h={h}")
         super().__init__(root, transform)
-        dataset = [nx.random_regular_graph(n=n, d=k, seed=seed) for i in range(2)]
+        dataset = [nx.random_regular_graph(n=n, d=k, seed=seed) for i in range(NUM_GRAPHS)]
         data_list = []
         for i, datum in enumerate(dataset):
-            x = torch.ones(datum.number_of_nodes(), 1)
-            edge_index = to_undirected(torch.tensor(list(datum.edges())).transpose(1, 0))
-            data_list.append(Data(edge_index=edge_index, x=x, y=i))
+            x = torch.ones(datum.number_of_nodes(), 1).long()
+            edge_index = to_undirected(torch.tensor(list(datum.edges())).transpose(1, 0).long())
+            data_list.append(Data(edge_index=edge_index, x=x, y=(i+1)%2))
         self.data, self.slices = self.collate(data_list)
 
 

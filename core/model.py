@@ -34,7 +34,9 @@ class GNN(nn.Module):
         previous_x = x
         for layer, norm in zip(self.convs, self.norms):
             x = layer(x, edge_index, edge_attr)
-            x = norm(x)
+            # Consider the case in which the batch size is 1 and we do nothing
+            if x.shape[0] > 1:
+                x = norm(x)
             x = F.relu(x)
             x = F.dropout(x, self.dropout, training=self.training)
             if self.res:
@@ -403,7 +405,9 @@ class GNNAsKernel(nn.Module):
             # Reset edge attribute after the GNN executes
             data.edge_attr = raw_edge_attr
 
-            x = norm(x)
+            # Consider the case in which the batch size is 1 and we do nothing
+            if x.shape[0] > 1:
+                x = norm(x)
             x = F.relu(x)
             x = F.dropout(x, self.dropout, training=self.training)
 

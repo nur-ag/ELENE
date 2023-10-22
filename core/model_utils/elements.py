@@ -58,7 +58,9 @@ class MLP(nn.Module):
         for i, (layer, norm) in enumerate(zip(self.layers, self.norms)):
             x = layer(x)
             if i < self.nlayer-1 or self.with_final_activation:
-                x = norm(x)
+                # Consider the case in which the batch size is 1 and we do nothing
+                if x.shape[0] > 1:
+                    x = norm(x)
                 x = F.relu(x)  
 
         # if self.residual:

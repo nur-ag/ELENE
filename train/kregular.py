@@ -28,11 +28,11 @@ def create_dataset(cfg):
                                         random_init=False)
 
     root = 'data/kregular'
-    # Dirty hack: k must be < 100, n has to be >= 100.
+    # Dirty hack: k must be < 100, n has to be >= 100 and it's the exponent of 10^(n / 100).
     k = cfg.task % 100
-    n = cfg.task - k
+    n = round(10 ** ((cfg.task // 100) / 100))
     dataset = RandomKRegularDataset(root, n=n, k=k, h=cfg.subgraph.hops, seed=cfg.seed, transform=transform)
-    dataset_list = [x for x in dataset] 
+    dataset_list = [x for x in dataset]
 
     # When without randomness, transform the data to save a bit time
     # torch.set_num_threads(cfg.num_workers)
@@ -50,7 +50,7 @@ def create_dataset(cfg):
 def create_model(cfg):
     model = GNNAsKernel(None, None, 
                         nhid=cfg.model.hidden_size, 
-                        nout=2, 
+                        nout=1, 
                         nlayer_outer=cfg.model.num_layers,
                         nlayer_inner=cfg.model.mini_layers,
                         gnn_types=[cfg.model.gnn_type], 
@@ -83,8 +83,8 @@ def train(train_loader, model, optimizer, device):
     for data in train_loader:
         data = data.to(device)
         optimizer.zero_grad()
-        out = model(data).squeeze()
-        loss = torch.nn.CrossEntropyLoss()(out, data.y)
+        out = model(data)
+        loss = torch.nn.BCEWithLogitsLoss()(out, data.y.reshape(*out.shape).float())
         loss.backward()
         total_loss += loss.item() * data.num_graphs
         optimizer.step()
@@ -95,11 +95,11 @@ def test(loader, model, evaluator, device):
     y_preds, y_trues = [], []
     for data in loader:
         data = data.to(device)
-        y_preds.append(torch.argmax(model(data), dim=-1))
+        y_preds.append(model(data))
         y_trues.append(data.y)
-    y_preds = torch.cat(y_preds, -1)
-    y_trues = torch.cat(y_trues, -1)
-    return (y_preds == y_trues).float().mean()
+    y_preds = torch.nn.functional.sigmoid(torch.cat(y_preds, -1))
+    y_trues = torch.cat(y_trues, -1).float()
+    return 1.0 - (y_trues - y_preds).float().abs().mean()
 
 if __name__ == '__main__':
     # get config 

@@ -140,6 +140,7 @@ best_df = pd.merge(best_df, time_agg_df, on=EXPERIMENT_KEY)
 best_col_order = [col for i, col in sorted(enumerate(best_df.columns), key=lambda x: (x[1].split("_")[-1] in METRIC_STATS, x[0]))]
 full_best_df = best_df[best_col_order].copy()
 full_best_df.to_csv(f"tables/results_all.csv")
+full_best_df[full_best_df.dataset == "kregular"].to_csv(f"tables/results_scalability.csv")
 
 # Get the row with the best memory usage and best performance
 for benchmark, datasets in DATASETS_BY_NAME.items():
