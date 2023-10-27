@@ -21,6 +21,7 @@ powers_of_ten = [10**i for i in np.arange(2, 4.51, 0.25)]
 power_of_ten_labels = [f"$10^{int(i)}$" if i == int(i) else f"$10^{{{i}}}$" for i in np.arange(2, 4.51, 0.25)]
 line_styles = {"GIN (Lower Bound)": ":", "ELENE ($\\bf{ND}$)": "-", "ELENE ($\\bf{ED}$)": "--"}
 colors = ["k", "g", "b", "r"]
+markers = [".", ".", ".", "."]
 for max_deg, deg_df in plot_df.groupby(["max_degree"]):
     fig = plt.figure()
     fig.set_size_inches(8, 3)
@@ -55,11 +56,12 @@ for max_deg, deg_df in plot_df.groupby(["max_degree"]):
             group_df.memory, 
             c=colors[depth], 
             label=model_str,
-            linestyle=line_style
+            linestyle=line_style,
+            marker=markers[depth],
         )
         line_handles.append(handle)
     ax.legend(title=f"$d_{{max}}$ = {max_degree}", handles=line_handles, loc="center left", bbox_to_anchor=(1, 0.5))
-    ax.set_xlim([100, 10**4.55])
+    ax.set_xlim([10**1.95, 10**4.55])
     ax.set_ylim([0, 16000])
     fig.tight_layout()
     fig.savefig(f"ScalabilityMaxDeg{max_degree}.pdf", dpi=120)
