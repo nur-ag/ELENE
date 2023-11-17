@@ -8,7 +8,8 @@ df = pd.read_csv("tables/results_scalability.csv")
 df["num_nodes"] = (10 ** (df["T"] // 100 / 100)).round().astype(int)
 df["max_degree"] = df["T"] % 100
 df["depth"] = df.ELENE.str.split("-").apply(lambda x: int(x[1]))
-df["model"] = df.ELENE.str.split("-").apply(lambda x: "ELENE ($\\bf{ND}$)" if x[2] == "YJN" else "ELENE ($\\bf{ED}$)" if x[0] != '0' else "GIN (Lower Bound)")
+df["model"] = df.ELENE.str.split("-").apply(lambda x: "ELENE ($\\bf{ND}$)" if x[2] == "YJN" 
+else "ELENE ($\\bf{ED}$)" if x[0] != '0' else "GIN (Baseline)")
 df["memory"] = (df.mem_mean).round().astype(int)
 
 # Select the columns and prepare the plots
@@ -19,7 +20,7 @@ plot_df = df[COLUMNS]
 powers_of_two = [0] + [2**i for i in range(4, 14)]
 powers_of_ten = [10**i for i in np.arange(2, 4.51, 0.25)]
 power_of_ten_labels = [f"$10^{int(i)}$" if i == int(i) else f"$10^{{{i}}}$" for i in np.arange(2, 4.51, 0.25)]
-line_styles = {"GIN (Lower Bound)": ":", "ELENE ($\\bf{ND}$)": "-", "ELENE ($\\bf{ED}$)": "--"}
+line_styles = {"GIN (Baseline)": ":", "ELENE ($\\bf{ND}$)": "-", "ELENE ($\\bf{ED}$)": "--"}
 colors = ["k", "g", "b", "r"]
 markers = [".", ".", ".", "."]
 for max_deg, deg_df in plot_df.groupby(["max_degree"]):
