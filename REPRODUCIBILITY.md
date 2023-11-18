@@ -1,9 +1,9 @@
-Reproducible Research --- ELENE: Exploring MP-GNN Expressivity via Edge-Level Ego-Network Encodings
+Reproducible Research --- Improving Subgraph-GNNs via Edge-Level Ego-Network Encodings
 ===================================================================================================
 
-This document describes how to reproduce the results for our paper "ELENE: Exploring MP-GNN 
-Expressivity via Edge-Level Ego-Network Encodings". We provide the following supplementary
-materials including code and instructions.
+This document describes how to reproduce the results for our paper "Improving Subgraph-GNNs 
+via Edge-Level Ego-Network Encodings". We provide the following supplementary materials 
+including code and instructions.
 
 ## Reproducibility
 
