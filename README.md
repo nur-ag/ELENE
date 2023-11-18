@@ -1,4 +1,4 @@
-# ELENE: Exploring MP-GNN Expressivity via Edge-Level Ego-Network Encodings
+# Improving Subgraph-GNNs via Edge-Level Ego-Network Encodings
 
 Based on the Official code for [**GNN-As-Kernel**](https://github.com/LingxiaoShawn/GNNAsKernel) for evaluation consistency. 
 
