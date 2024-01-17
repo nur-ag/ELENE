@@ -1,0 +1,15 @@
+dataset: prefattach
+model:
+  num_layers: 1
+  mini_layers: 0
+  embs: (0, 1, 2)
+  embs_combine_mode: 'concat'
+  pool: add
+  mlp_layers: 2
+subgraph:
+  hops: 3
+  online: True
+train:
+  lr: 0.001
+  epochs: 25
+  runs: 3

@@ -40,6 +40,28 @@ class RandomKRegularDataset(InMemoryDataset):
         self.data, self.slices = self.collate(data_list)
 
 
+class RandomBarabasiAlbertDataset(InMemoryDataset):
+    """Implements an in-memory Barabasi-Albert n-node, m-edge-per-node dataset with graphs to overfit.
+
+    This is helpful to study scalability on ego-network depths.
+    """
+    @property
+    def processed_file_names(self):
+        return 'data.pt'
+
+    def __init__(self, root, n, m, h, seed=None, transform=None):
+        NUM_GRAPHS = 1
+        root = osp.join("n={n}_m={m}_h={h}")
+        super().__init__(root, transform)
+        dataset = [nx.barabasi_albert_graph(n=n, m=m, seed=seed) for i in range(NUM_GRAPHS)]
+        data_list = []
+        for i, datum in enumerate(dataset):
+            x = torch.ones(datum.number_of_nodes(), 1).long()
+            edge_index = to_undirected(torch.tensor(list(datum.edges())).transpose(1, 0).long())
+            data_list.append(Data(edge_index=edge_index, x=x, y=(i+1)%2))
+        self.data, self.slices = self.collate(data_list)
+
+
 class QM9SplitsDataset(InMemoryDataset):
     """A PyTorch Geometric dataset with the splits from GNN-FiLM,
     following the code from SPNNs.
